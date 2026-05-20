@@ -1,37 +1,33 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, InputLabel } from "@/components/ui/Input";
 
-const DEMO_EMAIL = "demo@kubo.app";
-const DEMO_PASSWORD = "kubo123";
-
-export default function Home() {
-  const router = useRouter();
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    router.push("/dashboard");
-  }
-
+export default function LoginPage() {
   return (
     <main className="flex min-h-full flex-1 items-center justify-center px-4 py-10 sm:px-6">
       <Card className="w-full max-w-md p-8 shadow-card-lg sm:p-10">
-        <div className="mb-6">
-          <p className="font-display text-2xl font-bold tracking-tight text-midnight-ink">
-            Kubo
-          </p>
-          <h1 className="mt-4 font-display text-xl font-semibold text-midnight-ink">
-            Bienvenido de nuevo
-          </h1>
-          <p className="mt-1 text-sm text-cool-gray">
-            Ingresá para seguir estudiando.
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="font-display text-2xl font-bold tracking-tight text-midnight-ink">
+              Kubo
+            </p>
+            <h1 className="mt-4 font-display text-xl font-semibold text-midnight-ink">
+              Bienvenido de nuevo
+            </h1>
+            <p className="mt-1 text-sm text-cool-gray">
+              Ingresá para seguir estudiando.
+            </p>
+          </div>
+          <Badge variant="streak" className="shrink-0">
+            <p className="font-medium text-cool-gray">Tu progreso</p>
+            <p className="mt-0.5 font-display text-sm text-midnight-ink">
+              🔥 Racha 6 días
+            </p>
+          </Badge>
         </div>
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-5" action="#" method="post">
           <div className="space-y-2">
             <InputLabel htmlFor="email">Email</InputLabel>
             <Input
@@ -39,7 +35,6 @@ export default function Home() {
               name="email"
               type="email"
               autoComplete="email"
-              defaultValue={DEMO_EMAIL}
               placeholder="tu@email.com"
             />
           </div>
@@ -51,7 +46,6 @@ export default function Home() {
               name="password"
               type="password"
               autoComplete="current-password"
-              defaultValue={DEMO_PASSWORD}
               placeholder="••••••••"
             />
           </div>
