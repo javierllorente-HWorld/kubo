@@ -16,6 +16,9 @@ El objetivo inicial de Kubo es validar una experiencia simple para que estudiant
 - Mantener una racha de estudio.
 - Avanzar con una experiencia visual y gamificada.
 
+<img width="1366" height="613" alt="image" src="https://github.com/user-attachments/assets/4d0babb9-da20-426a-991f-b6b2c17b4bce" />
+
+
 ## Funcionalidades actuales
 
 - Pantalla de login demo.
