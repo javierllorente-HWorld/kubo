@@ -15,9 +15,6 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "Kubo",
   description: "Flashcards gamificadas para estudiantes universitarios",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({

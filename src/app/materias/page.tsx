@@ -44,18 +44,19 @@ export default function MateriasPage() {
 
   return (
     <AppShell>
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
-        <header className="mb-6">
-          <h1 className="font-display text-2xl font-bold text-midnight-ink sm:text-3xl">
-            Materias
-          </h1>
-          <p className="mt-1 text-sm text-cool-gray">
-            Organizá tus materias y seguí tu progreso.
-          </p>
-        </header>
+      <main className="flex-1 p-4 sm:p-5 lg:p-6">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-4">
+            <h1 className="font-display text-xl font-bold text-midnight-ink sm:text-2xl">
+              Materias
+            </h1>
+            <p className="mt-1 text-sm text-cool-gray">
+              Organizá tus materias y seguí tu progreso.
+            </p>
+          </header>
 
-        <section>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {subjects.map((subject) => {
               const card = (
                 <Card className="h-full p-5 transition-shadow hover:shadow-card-lg">
@@ -109,8 +110,9 @@ export default function MateriasPage() {
                 Agregar materia
               </span>
             </button>
-          </div>
-        </section>
+            </div>
+          </section>
+        </div>
       </main>
 
       {isModalOpen && (

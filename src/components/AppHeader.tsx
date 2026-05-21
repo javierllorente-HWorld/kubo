@@ -1,0 +1,94 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+const recentActivity = [
+  {
+    title: "Estudiaste 32 cards en Anatomía",
+    xp: "+20 XP",
+    time: "Hoy, 10:24",
+    icon: "✅",
+  },
+  {
+    title: "Nueva mejor racha: 6 días seguidos",
+    xp: "+50 XP",
+    time: "Ayer, 21:15",
+    icon: "🔥",
+  },
+  {
+    title: 'Completaste el deck "Sistema Nervioso"',
+    xp: "+100 XP",
+    time: "Ayer, 20:40",
+    icon: "🏆",
+  },
+];
+
+export function AppHeader() {
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  return (
+    <header className="relative z-50 flex shrink-0 items-center justify-end border-b border-cool-gray/15 bg-white px-4 py-3 sm:px-5 lg:px-6">
+      <div className="flex items-center gap-2.5">
+        <div className="relative z-50">
+          <button
+            type="button"
+            onClick={() => setNotificationsOpen((open) => !open)}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-cool-gray/20 bg-white text-sm shadow-sm transition-colors hover:bg-soft-cloud"
+            aria-label="Notificaciones"
+            aria-expanded={notificationsOpen}
+          >
+            🔔
+          </button>
+          {notificationsOpen && (
+            <div
+              className="absolute right-0 top-full z-[100] mt-2 w-[360px] rounded-2xl border border-cool-gray/15 bg-white p-5 shadow-card-lg"
+              role="region"
+              aria-label="Panel de notificaciones"
+            >
+              <h2 className="font-display text-base font-semibold text-midnight-ink">
+                Actividad reciente
+              </h2>
+              <p className="mt-0.5 text-xs text-cool-gray">
+                Tus últimos avances
+              </p>
+              <ul className="mt-4">
+                {recentActivity.map((item) => (
+                  <li
+                    key={item.title}
+                    className="flex gap-3 border-b border-cool-gray/15 py-3.5 last:border-0"
+                  >
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-soft-cloud text-base"
+                      aria-hidden
+                    >
+                      {item.icon}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="pr-2 text-sm font-medium leading-snug text-midnight-ink">
+                          {item.title}
+                        </p>
+                        <span className="shrink-0 rounded-full bg-electric-lime/25 px-2 py-0.5 text-[11px] font-semibold leading-none text-midnight-ink">
+                          {item.xp}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-cool-gray">{item.time}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        <Link
+          href="/perfil"
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90"
+          aria-label="Andrés Demo"
+        >
+          AD
+        </Link>
+      </div>
+    </header>
+  );
+}

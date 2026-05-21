@@ -15,24 +15,21 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-graphite text-white">
-      <div className="border-b border-white/10 px-6 py-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex h-12 items-center"
-        >
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-56 flex-col bg-graphite text-white">
+      <div className="border-b border-white/10 px-5 py-5">
+        <Link href="/dashboard" className="inline-flex h-10 items-center">
           <Image
             src="/logo-kubo.png"
             alt="Kubo"
-            width={135}
-            height={45}
-            className="h-auto w-[135px] object-contain"
+            width={120}
+            height={40}
+            className="h-auto w-[120px] object-contain"
             priority
           />
         </Link>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
+      <nav className="flex flex-1 flex-col gap-1.5 px-3 py-4">
         {navItems.map((item) => {
           const isActive =
             item.href === "/materias"
@@ -44,14 +41,14 @@ export function AppSidebar() {
               key={item.label}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition-colors",
+                "flex items-center gap-3.5 rounded-2xl px-3.5 py-2.5 text-[15px] font-medium transition-colors",
                 isActive
-                  ? "bg-electric-lime/15 font-semibold text-electric-lime ring-1 ring-electric-lime/10"
-                  : "text-cool-gray hover:bg-white/5 hover:text-white",
+                  ? "bg-electric-lime font-semibold text-midnight-ink shadow-sm"
+                  : "text-white/85 hover:bg-white/5 hover:text-white",
               )}
             >
               <span
-                className="flex w-5 shrink-0 items-center justify-center text-[16px]"
+                className="flex w-7 shrink-0 items-center justify-center text-[22px] leading-none"
                 aria-hidden
               >
                 {item.icon}
