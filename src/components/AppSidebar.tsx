@@ -15,7 +15,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-56 flex-col bg-graphite text-white">
+    <aside className="fixed inset-y-0 left-0 z-40 flex h-screen w-56 flex-col overflow-hidden bg-graphite text-white">
       <div className="border-b border-white/10 px-5 py-5">
         <Link href="/dashboard" className="inline-flex h-10 items-center">
           <Image

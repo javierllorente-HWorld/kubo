@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { cn } from "@/lib/cn";
 
 const recentActivity = [
   {
@@ -24,17 +25,31 @@ const recentActivity = [
   },
 ];
 
-export function AppHeader() {
+type AppHeaderProps = {
+  compact?: boolean;
+  className?: string;
+};
+
+export function AppHeader({ compact = false, className }: AppHeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   return (
-    <header className="relative z-50 flex shrink-0 items-center justify-end border-b border-cool-gray/15 bg-white px-4 py-3 sm:px-5 lg:px-6">
+    <header
+      className={cn(
+        "sticky top-0 z-50 flex shrink-0 items-center justify-end border-b border-cool-gray/15 bg-white px-4 sm:px-5 lg:px-6",
+        compact ? "py-2" : "py-3",
+        className,
+      )}
+    >
       <div className="flex items-center gap-2.5">
         <div className="relative z-50">
           <button
             type="button"
             onClick={() => setNotificationsOpen((open) => !open)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-cool-gray/20 bg-white text-sm shadow-sm transition-colors hover:bg-soft-cloud"
+            className={cn(
+              "flex cursor-pointer items-center justify-center rounded-full border border-cool-gray/20 bg-white text-sm shadow-sm transition-colors hover:bg-soft-cloud",
+              compact ? "h-8 w-8" : "h-9 w-9",
+            )}
             aria-label="Notificaciones"
             aria-expanded={notificationsOpen}
           >
@@ -83,7 +98,10 @@ export function AppHeader() {
         </div>
         <Link
           href="/perfil"
-          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90"
+          className={cn(
+            "flex shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90",
+            compact ? "h-8 w-8" : "h-9 w-9",
+          )}
           aria-label="Andrés Demo"
         >
           AD
