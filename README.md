@@ -1,3 +1,5 @@
+# Kubo
+
 Kubo es un MVP frontend de una plataforma de estudio para estudiantes universitarios, inspirada en Anki.
 La app permite organizar materias y decks, estudiar con cards, mantener una racha, visualizar progreso diario y avanzar con una experiencia simple, moderna y gamificada de forma sobria.
 
@@ -11,6 +13,7 @@ IMAGEN - Dashboard principal con sesión diaria, racha y decks.
 
 
 <img width="737" height="573" alt="image" src="https://github.com/user-attachments/assets/3c260409-d9f4-48cc-b69e-7cc1ec1d58ca" />
+
 IMAGEN - Pantalla de estudio con card, respuesta y botones de calificación.
 
 ## Objetivo
