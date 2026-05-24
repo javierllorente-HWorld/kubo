@@ -1,16 +1,20 @@
 type DailyGoalRingProps = {
   completed: number;
   goal: number;
+  pendingToday?: number;
 };
 
 const RADIUS = 32;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function DailyGoalRing({ completed, goal }: DailyGoalRingProps) {
+export function DailyGoalRing({
+  completed,
+  goal,
+  pendingToday,
+}: DailyGoalRingProps) {
   const percent =
     goal > 0 ? Math.min(100, Math.round((completed / goal) * 100)) : 0;
-  const progressOffset =
-    CIRCUMFERENCE - (percent / 100) * CIRCUMFERENCE;
+  const progressOffset = CIRCUMFERENCE - (percent / 100) * CIRCUMFERENCE;
 
   return (
     <div
@@ -19,7 +23,7 @@ export function DailyGoalRing({ completed, goal }: DailyGoalRingProps) {
       aria-valuenow={completed}
       aria-valuemin={0}
       aria-valuemax={goal}
-      aria-label={`Objetivo diario: ${completed} de ${goal} cards, ${percent}%`}
+      aria-label={`Objetivo diario: ${completed} de ${goal} cards completadas`}
     >
       <div className="relative h-24 w-24">
         <svg
@@ -50,14 +54,16 @@ export function DailyGoalRing({ completed, goal }: DailyGoalRingProps) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="font-display text-lg font-bold leading-none text-electric-lime">
-            {percent}%
-          </span>
-          <span className="mt-1 text-[11px] font-medium leading-none text-white/70">
-            {completed} / {goal}
+            {completed}/{goal}
           </span>
         </div>
       </div>
       <p className="mt-2.5 text-xs font-medium text-cool-gray">Objetivo diario</p>
+      {pendingToday !== undefined ? (
+        <p className="mt-1 text-xs text-white/60">
+          {pendingToday} pendientes hoy
+        </p>
+      ) : null}
     </div>
   );
 }

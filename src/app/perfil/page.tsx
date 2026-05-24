@@ -1,8 +1,10 @@
 import { AppShell } from "@/components/AppShell";
+import { PageHeader } from "@/components/PageHeader";
 import { ProgressSummary } from "@/components/ProgressSummary";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { StatCard } from "@/components/StatCard";
 import {
   accountFields,
   progressStats,
@@ -14,16 +16,12 @@ export default function PerfilPage() {
   return (
     <AppShell>
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
-        <header className="mb-4">
-          <h1 className="font-display text-xl font-bold text-midnight-ink sm:text-2xl">
-            Perfil
-          </h1>
-          <p className="mt-1 text-sm text-cool-gray">
-            Tu información personal y progreso de estudio.
-          </p>
-        </header>
-
         <div className="mx-auto max-w-6xl">
+          <PageHeader
+            title="Perfil"
+            description="Tu información personal y progreso de estudio."
+          />
+
           <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
             <div className="flex flex-col gap-4">
               <Card className="p-4 sm:p-5">
@@ -94,17 +92,11 @@ export default function PerfilPage() {
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {accountFields.map((field) => (
-                  <div
+                  <StatCard
                     key={field.label}
-                    className="rounded-xl border border-cool-gray/15 bg-soft-cloud/60 px-3 py-2.5"
-                  >
-                    <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-cool-gray">
-                      {field.label}
-                    </p>
-                    <p className="mt-0.5 text-sm font-medium text-midnight-ink">
-                      {field.value}
-                    </p>
-                  </div>
+                    label={field.label}
+                    value={field.value}
+                  />
                 ))}
               </div>
               <div className="mt-4 flex justify-end">

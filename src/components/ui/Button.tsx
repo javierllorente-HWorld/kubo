@@ -1,6 +1,9 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
+const baseStyles =
+  "inline-flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+
 const variantStyles = {
   primary:
     "font-display bg-electric-lime text-midnight-ink shadow-sm hover:bg-fresh-lime",
@@ -10,6 +13,13 @@ const variantStyles = {
 } as const;
 
 export type ButtonVariant = keyof typeof variantStyles;
+
+export function buttonClassName(
+  variant: ButtonVariant = "primary",
+  className?: string,
+) {
+  return cn(baseStyles, variantStyles[variant], className);
+}
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -21,11 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         type={type}
-        className={cn(
-          "inline-flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50",
-          variantStyles[variant],
-          className,
-        )}
+        className={buttonClassName(variant, className)}
         {...props}
       />
     );

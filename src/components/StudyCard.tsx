@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { ratingButtons } from "@/lib/mock-data";
+import { RatingButtons } from "@/components/RatingButtons";
 import type { Flashcard } from "@/lib/mock-data";
 
 type StudyCardProps = {
   card: Flashcard;
+  onRate?: () => void;
 };
 
-export function StudyCard({ card }: StudyCardProps) {
+export function StudyCard({ card, onRate }: StudyCardProps) {
   const [showAnswer, setShowAnswer] = useState(false);
 
   return (
@@ -52,26 +53,7 @@ export function StudyCard({ card }: StudyCardProps) {
 
       {showAnswer ? (
         <Card className="w-full p-4 shadow-card sm:p-5">
-          <p className="mb-3 text-center text-sm font-medium text-midnight-ink">
-            ¿Qué tan bien recordaste esta card?
-          </p>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-            {ratingButtons.map((btn) => (
-              <button
-                key={btn.label}
-                type="button"
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border px-3 py-3.5 text-center transition-colors sm:py-4 ${btn.className}`}
-              >
-                <span className="font-display text-sm font-semibold">
-                  {btn.label}
-                </span>
-                <span className="mt-1 text-xs opacity-80">{btn.sublabel}</span>
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-center text-xs text-cool-gray">
-            Repetición espaciada según tu desempeño
-          </p>
+          <RatingButtons onRate={() => onRate?.()} />
         </Card>
       ) : null}
     </div>

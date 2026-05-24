@@ -2,28 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { recentActivity, userProfile } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
-
-const recentActivity = [
-  {
-    title: "Estudiaste 32 cards en Anatomía",
-    xp: "+20 XP",
-    time: "Hoy, 10:24",
-    icon: "✅",
-  },
-  {
-    title: "Nueva mejor racha: 6 días seguidos",
-    xp: "+50 XP",
-    time: "Ayer, 21:15",
-    icon: "🔥",
-  },
-  {
-    title: 'Completaste el deck "Sistema Nervioso"',
-    xp: "+100 XP",
-    time: "Ayer, 20:40",
-    icon: "🏆",
-  },
-];
 
 type AppHeaderProps = {
   compact?: boolean;
@@ -47,17 +27,19 @@ export function AppHeader({ compact = false, className }: AppHeaderProps) {
             type="button"
             onClick={() => setNotificationsOpen((open) => !open)}
             className={cn(
-              "flex cursor-pointer items-center justify-center rounded-full border border-cool-gray/20 bg-white text-sm shadow-sm transition-colors hover:bg-soft-cloud",
+              "flex cursor-pointer items-center justify-center rounded-full border border-cool-gray/20 bg-white text-sm shadow-sm transition-colors hover:bg-soft-cloud focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/50 focus-visible:ring-offset-2",
               compact ? "h-8 w-8" : "h-9 w-9",
             )}
             aria-label="Notificaciones"
             aria-expanded={notificationsOpen}
           >
-            🔔
+            <span aria-hidden className="text-base leading-none">
+              ···
+            </span>
           </button>
           {notificationsOpen && (
             <div
-              className="absolute right-0 top-full z-[100] mt-2 w-[360px] rounded-2xl border border-cool-gray/15 bg-white p-5 shadow-card-lg"
+              className="absolute right-0 top-full z-[100] mt-2 w-[min(360px,calc(100vw-2rem))] rounded-2xl border border-cool-gray/15 bg-white p-5 shadow-card-lg"
               role="region"
               aria-label="Panel de notificaciones"
             >
@@ -74,7 +56,7 @@ export function AppHeader({ compact = false, className }: AppHeaderProps) {
                     className="flex gap-3 border-b border-cool-gray/15 py-3.5 last:border-0"
                   >
                     <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-soft-cloud text-base"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-soft-cloud font-display text-xs font-semibold text-midnight-ink"
                       aria-hidden
                     >
                       {item.icon}
@@ -99,12 +81,12 @@ export function AppHeader({ compact = false, className }: AppHeaderProps) {
         <Link
           href="/perfil"
           className={cn(
-            "flex shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90",
+            "flex shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/50 focus-visible:ring-offset-2",
             compact ? "h-8 w-8" : "h-9 w-9",
           )}
-          aria-label="Andrés Demo"
+          aria-label={`Perfil de ${userProfile.name}`}
         >
-          AD
+          {userProfile.initials}
         </Link>
       </div>
     </header>

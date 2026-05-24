@@ -15,6 +15,12 @@ export type Flashcard = {
   status: "repaso" | "nueva";
 };
 
+export type SessionCard = Flashcard & {
+  deckSlug: string;
+  deckName: string;
+  deckEmoji: string;
+};
+
 export type UserProfile = {
   name: string;
   email: string;
@@ -88,9 +94,44 @@ export const progressStats = {
   bestStreak: 12,
   cardsStudiedThisWeek: 214,
   averageAccuracy: 82,
-  strongestSubject: "Psicología Cognitiva",
-  weakestSubject: "Psicología Social",
+  strongestDeck: "Psicología Cognitiva",
+  weakestDeck: "Psicología Social",
 };
+
+export const progressSummaryStats = [
+  { label: "Racha actual", value: `${progressStats.currentStreak} días` },
+  { label: "Mejor racha", value: `${progressStats.bestStreak} días` },
+  {
+    label: "Cards estudiadas esta semana",
+    value: progressStats.cardsStudiedThisWeek.toString(),
+  },
+  { label: "Precisión promedio", value: `${progressStats.averageAccuracy}%` },
+  { label: "Deck más fuerte", value: progressStats.strongestDeck },
+  { label: "Deck a reforzar", value: progressStats.weakestDeck },
+] as const;
+
+export const recentActivity = [
+  {
+    title: "Estudiaste 24 cards en Psicología Cognitiva",
+    xp: "+20 XP",
+    time: "Hoy, 10:24",
+    icon: "✓",
+  },
+  {
+    title: "Nueva mejor racha: 6 días seguidos",
+    xp: "+50 XP",
+    time: "Ayer, 21:15",
+    icon: "★",
+  },
+  {
+    title: 'Completaste el deck "Psicología Social"',
+    xp: "+100 XP",
+    time: "Ayer, 20:40",
+    icon: "◆",
+  },
+] as const;
+
+export const deckIconOptions = ["🧠", "👥", "📚", "🧪", "📝", "🎓"] as const;
 
 export const studyPreferences = [
   { label: "Objetivo diario", value: `${dailyGoal} cards` },
@@ -155,10 +196,40 @@ export function getDeckCards(slug: string): Flashcard[] {
   return deckFlashcards[slug] ?? [];
 }
 
-export function getSessionCards(): Flashcard[] {
+function toSessionCards(
+  slug: string,
+  deck: Deck,
+  cards: Flashcard[],
+  limit: number,
+): SessionCard[] {
+  return cards.slice(0, limit).map((card) => ({
+    ...card,
+    deckSlug: slug,
+    deckName: deck.name,
+    deckEmoji: deck.emoji,
+  }));
+}
+
+export function getDeckSessionCards(slug: string): SessionCard[] {
+  const deck = getDeckBySlug(slug);
+  if (!deck) {
+    return [];
+  }
+
+  const cards = deckFlashcards[slug] ?? [];
+  const limit =
+    deck.pendingToday > 0
+      ? Math.min(deck.pendingToday, cards.length)
+      : cards.length;
+
+  return toSessionCards(slug, deck, cards, limit);
+}
+
+export function getSessionCards(): SessionCard[] {
   return decks.flatMap((deck) => {
     const cards = deckFlashcards[deck.slug] ?? [];
-    return cards.slice(0, Math.min(deck.pendingToday, cards.length));
+    const limit = Math.min(deck.pendingToday, cards.length);
+    return toSessionCards(deck.slug, deck, cards, limit);
   });
 }
 

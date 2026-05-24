@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { DailyGoalRing } from "@/components/DailyGoalRing";
+import { ButtonLink } from "@/components/ButtonLink";
 import { Card } from "@/components/ui/Card";
 import { dailySession } from "@/lib/mock-data";
+import { cn } from "@/lib/cn";
 
 export function DailySessionCard() {
   const hasPending = dailySession.pendingTotal > 0;
@@ -16,14 +17,17 @@ export function DailySessionCard() {
           Todo listo por hoy
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-cool-gray">
-          No tenés cards pendientes. Volvé mañana o agregá nuevas cards.
+          No tenés cards pendientes. Volvé mañana o agregá nuevas cards a tus decks.
         </p>
-        <Link
+        <ButtonLink
           href="/materias"
-          className="mt-5 inline-flex w-full items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-4 py-3 font-display text-sm font-semibold text-white transition-colors hover:bg-white/15"
+          variant="secondary"
+          className={cn(
+            "mt-5 w-full rounded-2xl border-white/20 bg-white/10 text-white shadow-none hover:bg-white/15 hover:text-white",
+          )}
         >
           Ir a materias
-        </Link>
+        </ButtonLink>
       </Card>
     );
   }
@@ -38,6 +42,9 @@ export function DailySessionCard() {
       </h2>
       <p className="mt-2 text-sm text-cool-gray">
         Tenés {dailySession.pendingTotal} cards pendientes para repasar.
+      </p>
+      <p className="mt-1 text-xs font-medium text-white/70">
+        Objetivo diario: {dailySession.dailyGoal} cards
       </p>
       <ul className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
         {dailySession.breakdown.map((item) => (
@@ -57,15 +64,16 @@ export function DailySessionCard() {
         <DailyGoalRing
           completed={dailySession.completedCards}
           goal={dailySession.dailyGoal}
+          pendingToday={dailySession.pendingTotal}
         />
       </div>
 
-      <Link
+      <ButtonLink
         href="/estudiar/sesion"
-        className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-electric-lime px-4 py-3 font-display text-sm font-semibold text-midnight-ink shadow-card transition-colors hover:bg-fresh-lime"
+        className="mt-5 w-full rounded-2xl"
       >
         Estudiar sesión
-      </Link>
+      </ButtonLink>
     </Card>
   );
 }

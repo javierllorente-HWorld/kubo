@@ -2,26 +2,24 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/Card";
 import { DailySessionCard } from "@/components/DailySessionCard";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { DeckPreviewCard } from "@/components/DeckPreviewCard";
+import { PageHeader } from "@/components/PageHeader";
 import { decks, streakData, userProfile } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
 
 export default function DashboardPage() {
   const previewDecks = decks.slice(0, 2);
+  const firstName = userProfile.name.split(" ")[0];
 
   return (
     <AppShell>
       <main className="relative z-0 flex-1 p-4 sm:p-5 lg:p-6">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-4">
-            <h1 className="font-display text-xl font-bold text-midnight-ink sm:text-2xl">
-              Inicio <span className="text-cool-gray/50">·</span> Hola,{" "}
-              {userProfile.name.split(" ")[0]}
-            </h1>
-            <p className="mt-1 text-sm text-cool-gray">
-              Tu plan de estudio para hoy.
-            </p>
-          </div>
+          <PageHeader
+            eyebrow="Inicio"
+            title={`Hola, ${firstName}`}
+            description="Tu plan de estudio para hoy."
+          />
 
           <div className="grid gap-4 xl:grid-cols-3 xl:gap-5">
             <section className="order-1 xl:col-span-2 xl:row-start-1">
@@ -82,43 +80,22 @@ export default function DashboardPage() {
               <section>
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="font-display text-base font-semibold text-midnight-ink">
-                    Tus materias
+                    Tus decks
                   </h2>
                   <Link
                     href="/materias"
-                    className="text-sm font-medium text-cool-gray transition-colors hover:text-midnight-ink"
+                    className="rounded-md text-sm font-medium text-cool-gray transition-colors hover:text-midnight-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/40 focus-visible:ring-offset-2"
                   >
-                    Ver todas
+                    Ver todos
                   </Link>
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {previewDecks.map((deck) => (
-                    <Card key={deck.slug} className="p-4">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-soft-cloud text-2xl"
-                          aria-hidden
-                        >
-                          {deck.emoji}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-display text-sm font-semibold text-midnight-ink">
-                            {deck.name}
-                          </p>
-                          <p className="text-xs text-cool-gray">
-                            {deck.pendingToday} pendientes hoy
-                          </p>
-                        </div>
-                      </div>
-                      <ProgressBar
-                        value={deck.masteryPercent}
-                        className="mt-3"
-                      />
-                      <p className="mt-2 text-xs text-cool-gray">
-                        {deck.cardsLearned}/{deck.totalCards} cards ·{" "}
-                        {deck.masteryPercent}% dominado
-                      </p>
-                    </Card>
+                    <DeckPreviewCard
+                      key={deck.slug}
+                      deck={deck}
+                      href={`/materias/${deck.slug}/estudiar`}
+                    />
                   ))}
                 </div>
               </section>

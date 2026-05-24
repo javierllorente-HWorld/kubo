@@ -4,38 +4,33 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { DeckCard } from "@/components/DeckCard";
 import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, InputLabel } from "@/components/ui/Input";
-import { decks } from "@/lib/mock-data";
+import { deckIconOptions, decks } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
-
-const iconOptions = ["🧠", "👥", "📚", "🧪", "📝", "🎓"] as const;
 
 export default function MateriasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedIcon, setSelectedIcon] = useState<(typeof iconOptions)[number]>(
-    iconOptions[0],
+  const [selectedIcon, setSelectedIcon] = useState<(typeof deckIconOptions)[number]>(
+    deckIconOptions[0],
   );
-  const [subjectName, setSubjectName] = useState("");
+  const [deckName, setDeckName] = useState("");
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSubjectName("");
-    setSelectedIcon(iconOptions[0]);
+    setDeckName("");
+    setSelectedIcon(deckIconOptions[0]);
   };
 
   return (
     <AppShell>
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
         <div className="mx-auto max-w-6xl">
-          <header className="mb-4">
-            <h1 className="font-display text-xl font-bold text-midnight-ink sm:text-2xl">
-              Materias
-            </h1>
-            <p className="mt-1 text-sm text-cool-gray">
-              Gestioná tus decks y empezá a estudiar cuando quieras.
-            </p>
-          </header>
+          <PageHeader
+            title="Materias"
+            description="Administrá tus decks y empezá a estudiar cuando quieras."
+          />
 
           <section>
             {decks.length > 0 ? (
@@ -47,8 +42,8 @@ export default function MateriasPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(true)}
-                  className="flex min-h-[14rem] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-electric-lime/40 bg-white p-5 shadow-card transition-colors hover:border-electric-lime/60 hover:bg-electric-lime/5"
-                  aria-label="Agregar materia"
+                  className="flex min-h-[14rem] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-electric-lime/40 bg-white p-5 shadow-card transition-colors hover:border-electric-lime/60 hover:bg-electric-lime/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/40 focus-visible:ring-offset-2"
+                  aria-label="Agregar deck"
                 >
                   <span
                     className="flex h-11 w-11 items-center justify-center rounded-full bg-electric-lime/20 font-display text-2xl font-semibold text-midnight-ink"
@@ -57,17 +52,17 @@ export default function MateriasPage() {
                     +
                   </span>
                   <span className="mt-3 font-display text-sm font-semibold text-midnight-ink">
-                    Agregar materia
+                    Agregar deck
                   </span>
                 </button>
               </div>
             ) : (
               <EmptyState
-                title="Todavía no tenés materias"
-                description="Creá tu primera materia para empezar a estudiar con repetición espaciada."
+                title="Todavía no tenés decks"
+                description="Creá tu primer deck para empezar a estudiar con repetición espaciada."
                 action={
                   <Button type="button" onClick={() => setIsModalOpen(true)}>
-                    Agregar materia
+                    Agregar deck
                   </Button>
                 }
               />
@@ -90,30 +85,28 @@ export default function MateriasPage() {
           <div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="new-subject-title"
-            className="relative w-full max-w-md rounded-2xl border border-cool-gray/15 bg-white p-6 shadow-[0_12px_40px_rgb(17,24,39,0.12)]"
+            aria-labelledby="new-deck-title"
+            className="relative w-full max-w-md rounded-2xl border border-cool-gray/15 bg-white p-6 shadow-card-lg"
           >
             <h2
-              id="new-subject-title"
+              id="new-deck-title"
               className="font-display text-lg font-semibold text-midnight-ink"
             >
-              Nueva materia
+              Nuevo deck
             </h2>
             <p className="mt-1 text-sm text-cool-gray">
-              Creá una materia para organizar tus cards.
+              Creá un deck para agrupar tus cards de estudio.
             </p>
 
             <div className="mt-5 space-y-4">
               <div>
-                <InputLabel htmlFor="subject-name">
-                  Nombre de la materia
-                </InputLabel>
+                <InputLabel htmlFor="deck-name">Nombre del deck</InputLabel>
                 <Input
-                  id="subject-name"
+                  id="deck-name"
                   type="text"
                   placeholder="Ej: Psicología del desarrollo"
-                  value={subjectName}
-                  onChange={(e) => setSubjectName(e.target.value)}
+                  value={deckName}
+                  onChange={(e) => setDeckName(e.target.value)}
                   className="mt-2"
                 />
               </div>
@@ -121,13 +114,13 @@ export default function MateriasPage() {
               <div>
                 <InputLabel>Ícono</InputLabel>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {iconOptions.map((icon) => (
+                  {deckIconOptions.map((icon) => (
                     <button
                       key={icon}
                       type="button"
                       onClick={() => setSelectedIcon(icon)}
                       className={cn(
-                        "flex h-11 w-11 items-center justify-center rounded-xl border text-xl transition-colors",
+                        "flex h-11 w-11 items-center justify-center rounded-xl border text-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/40 focus-visible:ring-offset-2",
                         selectedIcon === icon
                           ? "border-electric-lime bg-fresh-lime/30"
                           : "border-cool-gray/20 bg-soft-cloud hover:border-cool-gray/40",
@@ -152,7 +145,7 @@ export default function MateriasPage() {
                 Cancelar
               </Button>
               <Button type="button" className="flex-1" onClick={closeModal}>
-                Crear materia
+                Crear deck
               </Button>
             </div>
           </div>

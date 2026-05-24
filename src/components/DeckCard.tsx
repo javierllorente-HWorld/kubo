@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ButtonLink";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { Deck } from "@/lib/mock-data";
 
@@ -44,16 +43,12 @@ export function DeckCard({ deck }: DeckCardProps) {
       </div>
 
       <div className="mt-5 flex gap-2">
-        <Link href={studyHref} className="flex-1">
-          <Button type="button" className="w-full">
-            Estudiar
-          </Button>
-        </Link>
-        <Link href={editHref} className="flex-1">
-          <Button type="button" variant="secondary" className="w-full">
-            Editar deck
-          </Button>
-        </Link>
+        <ButtonLink href={studyHref} variant="primary" className="flex-1">
+          Estudiar
+        </ButtonLink>
+        <ButtonLink href={editHref} variant="secondary" className="flex-1">
+          Editar deck
+        </ButtonLink>
       </div>
     </Card>
   );
