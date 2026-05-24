@@ -155,6 +155,7 @@ La app cuenta con:
 - Página 404 custom.
 
 <img width="452" height="439" alt="image" src="https://github.com/user-attachments/assets/a8d99a14-fb84-4736-a0bf-d13491c5b60a" />
+
 IMAGEN - Dropdown de notificaciones.
 
 ## Identidad visual
