@@ -22,7 +22,11 @@ export default function DashboardPage() {
           />
 
           <div className="grid gap-4 xl:grid-cols-3 xl:gap-5">
-            <section className="order-1 xl:col-span-2 xl:row-start-1">
+            <div className="order-1 xl:order-none xl:col-start-3 xl:row-span-2 xl:row-start-1">
+              <DailySessionCard />
+            </div>
+
+            <section className="order-2 xl:order-none xl:col-span-2 xl:row-start-1">
               <Card
                 variant="metric"
                 className="border-electric-lime/40 bg-electric-lime/10 p-4"
@@ -30,7 +34,7 @@ export default function DashboardPage() {
                 <p className="font-display text-base font-semibold text-midnight-ink">
                   Progreso
                 </p>
-                <div className="mt-3 flex items-center justify-between gap-4">
+                <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-sm text-cool-gray">Racha actual</p>
                     <p className="mt-1 font-display text-2xl font-bold text-midnight-ink">
@@ -72,11 +76,7 @@ export default function DashboardPage() {
               </Card>
             </section>
 
-            <div className="relative z-0 order-3 self-start xl:order-none xl:col-start-3 xl:row-span-2 xl:row-start-1">
-              <DailySessionCard />
-            </div>
-
-            <div className="order-2 xl:order-none xl:col-span-2 xl:row-start-2">
+            <div className="order-3 xl:order-none xl:col-span-2 xl:row-start-2">
               <section>
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="font-display text-base font-semibold text-midnight-ink">
@@ -89,7 +89,7 @@ export default function DashboardPage() {
                     Ver todos
                   </Link>
                 </div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {previewDecks.map((deck) => (
                     <DeckPreviewCard
                       key={deck.slug}

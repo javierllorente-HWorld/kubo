@@ -86,9 +86,9 @@ export default function Home() {
 
   return (
     <main
-      className="relative isolate flex min-h-full flex-1 items-center justify-center overflow-hidden bg-soft-cloud bg-[url('/login-background.png')] bg-cover bg-center bg-no-repeat px-4 py-10 sm:px-6 sm:py-14"
+      className="relative isolate flex min-h-[100dvh] flex-1 items-center justify-center overflow-x-hidden bg-soft-cloud bg-[url('/login-background.png')] bg-cover bg-center bg-no-repeat px-4 py-8 sm:px-6 sm:py-14"
     >
-      <div className="relative z-20 mx-auto w-full max-w-[22.5rem] sm:max-w-[24.375rem]">
+      <div className="relative z-20 mx-auto w-full min-w-0 max-w-[22.5rem] sm:max-w-[24.375rem]">
         <Card className="w-full overflow-hidden rounded-3xl border border-white/90 bg-white p-0 shadow-card-lg">
           {/* Header oscuro integrado */}
           <div className="flex h-[86px] items-center justify-between rounded-t-3xl bg-graphite px-5 sm:h-[90px]">

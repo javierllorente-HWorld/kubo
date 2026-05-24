@@ -73,7 +73,7 @@ export default function MateriasPage() {
 
       {isModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
           role="presentation"
         >
           <button
@@ -86,7 +86,7 @@ export default function MateriasPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-deck-title"
-            className="relative w-full max-w-md rounded-2xl border border-cool-gray/15 bg-white p-6 shadow-card-lg"
+            className="relative max-h-[min(90dvh,40rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-cool-gray/15 bg-white p-5 shadow-card-lg sm:max-h-none sm:p-6"
           >
             <h2
               id="new-deck-title"

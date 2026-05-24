@@ -42,11 +42,19 @@ export function DeckCard({ deck }: DeckCardProps) {
         <ProgressBar value={deck.masteryPercent} />
       </div>
 
-      <div className="mt-5 flex gap-2">
-        <ButtonLink href={studyHref} variant="primary" className="flex-1">
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+        <ButtonLink
+          href={studyHref}
+          variant="primary"
+          className="min-h-11 w-full flex-1 sm:w-auto"
+        >
           Estudiar
         </ButtonLink>
-        <ButtonLink href={editHref} variant="secondary" className="flex-1">
+        <ButtonLink
+          href={editHref}
+          variant="secondary"
+          className="min-h-11 w-full flex-1 sm:w-auto"
+        >
           Editar deck
         </ButtonLink>
       </div>

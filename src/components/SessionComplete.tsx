@@ -22,7 +22,7 @@ export function SessionComplete({ stats }: SessionCompleteProps) {
         Terminaste las cards programadas para hoy.
       </p>
 
-      <div className="mt-6 grid gap-2 text-left sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-2 text-left sm:grid-cols-3">
         <StatCard label="Cards estudiadas" value={stats.studied.toString()} />
         <StatCard label="Cards nuevas" value={stats.newCards.toString()} />
         <StatCard label="Cards de repaso" value={stats.reviewCards.toString()} />

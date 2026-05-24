@@ -57,18 +57,18 @@ export default async function EditarDeckPage({ params }: PageProps) {
                             {card.answer}
                           </p>
                         </div>
-                        <div className="flex shrink-0 gap-2">
+                        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
                           <Button
                             type="button"
                             variant="secondary"
-                            className="px-3 py-2 text-xs"
+                            className="min-h-11 w-full px-3 py-2 text-xs sm:w-auto"
                           >
                             Editar card
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
-                            className="px-3 py-2 text-xs text-red-700 hover:bg-red-50"
+                            className="min-h-11 w-full px-3 py-2 text-xs text-red-700 hover:bg-red-50 sm:w-auto"
                             aria-label={`Borrar card: ${card.question}`}
                           >
                             Borrar card

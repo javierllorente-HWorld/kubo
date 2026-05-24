@@ -30,7 +30,7 @@ export function RatingButtons({ onRate, disabled = false }: RatingButtonsProps) 
             onClick={() => onRate?.(btn.label)}
             aria-label={`${btn.label}, próximo repaso ${btn.sublabel}`}
             className={cn(
-              "flex cursor-pointer flex-col items-center justify-center rounded-2xl border px-3 py-3.5 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:py-4",
+              "flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-2xl border px-3 py-3.5 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-4",
               btn.className,
               ratingFocusClassName,
             )}

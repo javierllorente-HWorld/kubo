@@ -23,4 +23,5 @@ body {
   background-color: var(--color-soft-cloud);
   color: var(--color-midnight-ink);
   font-family: var(--font-sans);
+  overflow-x: hidden;
 }

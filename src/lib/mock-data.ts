@@ -115,19 +115,19 @@ export const recentActivity = [
     title: "Estudiaste 24 cards en Psicología Cognitiva",
     xp: "+20 XP",
     time: "Hoy, 10:24",
-    icon: "✓",
+    type: "study",
   },
   {
     title: "Nueva mejor racha: 6 días seguidos",
     xp: "+50 XP",
     time: "Ayer, 21:15",
-    icon: "★",
+    type: "streak",
   },
   {
-    title: 'Completaste el deck "Psicología Social"',
+    title: "Completaste el deck 'Psicología Social'",
     xp: "+100 XP",
     time: "Ayer, 20:40",
-    icon: "◆",
+    type: "achievement",
   },
 ] as const;
 

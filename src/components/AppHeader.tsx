@@ -1,7 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIconBadge,
+  BellIcon,
+} from "@/components/icons/NotificationIcons";
 import { recentActivity, userProfile } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
 
@@ -12,34 +17,69 @@ type AppHeaderProps = {
 
 export function AppHeader({ compact = false, className }: AppHeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!notificationsOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
+      ) {
+        setNotificationsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [notificationsOpen]);
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 flex shrink-0 items-center justify-end border-b border-cool-gray/15 bg-white px-4 sm:px-5 lg:px-6",
+        "sticky top-0 z-50 flex shrink-0 items-center justify-between gap-3 border-b border-cool-gray/15 bg-white px-4 sm:px-5 lg:justify-end lg:px-6",
         compact ? "py-2" : "py-3",
         className,
       )}
     >
+      <Link
+        href="/dashboard"
+        className="inline-flex shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/40 focus-visible:ring-offset-2 lg:hidden"
+        aria-label="Kubo, ir al inicio"
+      >
+        <Image
+          src="/logo-kubo.png"
+          alt=""
+          width={88}
+          height={30}
+          className="h-7 w-auto object-contain"
+          priority
+        />
+      </Link>
+
       <div className="flex items-center gap-2.5">
-        <div className="relative z-50">
+        <div className="relative" ref={panelRef}>
           <button
             type="button"
             onClick={() => setNotificationsOpen((open) => !open)}
             className={cn(
-              "flex cursor-pointer items-center justify-center rounded-full border border-cool-gray/20 bg-white text-sm shadow-sm transition-colors hover:bg-soft-cloud focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/50 focus-visible:ring-offset-2",
-              compact ? "h-8 w-8" : "h-9 w-9",
+              "flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border bg-white text-cool-gray shadow-sm transition-colors hover:bg-soft-cloud hover:text-midnight-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/35 focus-visible:ring-offset-2",
+              compact ? "h-9 w-9 min-h-9 min-w-9" : "h-10 w-10",
+              notificationsOpen
+                ? "border-cool-gray/25 bg-soft-cloud text-midnight-ink"
+                : "border-cool-gray/20",
             )}
             aria-label="Notificaciones"
             aria-expanded={notificationsOpen}
           >
-            <span aria-hidden className="text-base leading-none">
-              ···
-            </span>
+            <BellIcon />
           </button>
           {notificationsOpen && (
             <div
-              className="absolute right-0 top-full z-[100] mt-2 w-[min(360px,calc(100vw-2rem))] rounded-2xl border border-cool-gray/15 bg-white p-5 shadow-card-lg"
+              className="fixed inset-x-4 top-[3.25rem] z-[100] max-h-[min(24rem,calc(100dvh-6rem))] overflow-y-auto rounded-2xl border border-cool-gray/15 bg-white p-4 shadow-card-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-none sm:w-[min(360px,calc(100vw-2rem))] sm:p-5"
               role="region"
               aria-label="Panel de notificaciones"
             >
@@ -55,18 +95,13 @@ export function AppHeader({ compact = false, className }: AppHeaderProps) {
                     key={item.title}
                     className="flex gap-3 border-b border-cool-gray/15 py-3.5 last:border-0"
                   >
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-soft-cloud font-display text-xs font-semibold text-midnight-ink"
-                      aria-hidden
-                    >
-                      {item.icon}
-                    </span>
+                    <ActivityIconBadge type={item.type} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <p className="pr-2 text-sm font-medium leading-snug text-midnight-ink">
                           {item.title}
                         </p>
-                        <span className="shrink-0 rounded-full bg-electric-lime/25 px-2 py-0.5 text-[11px] font-semibold leading-none text-midnight-ink">
+                        <span className="shrink-0 rounded-full bg-electric-lime/20 px-2 py-0.5 text-[11px] font-semibold leading-none text-midnight-ink">
                           {item.xp}
                         </span>
                       </div>
@@ -81,8 +116,8 @@ export function AppHeader({ compact = false, className }: AppHeaderProps) {
         <Link
           href="/perfil"
           className={cn(
-            "flex shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/50 focus-visible:ring-offset-2",
-            compact ? "h-8 w-8" : "h-9 w-9",
+            "flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/35 focus-visible:ring-offset-2",
+            compact ? "h-9 w-9 min-h-9 min-w-9" : "h-10 w-10",
           )}
           aria-label={`Perfil de ${userProfile.name}`}
         >

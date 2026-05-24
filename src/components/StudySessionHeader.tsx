@@ -32,7 +32,7 @@ export function StudySessionHeader({
             <p className="text-xs font-medium uppercase tracking-wide text-cool-gray">
               Sesión diaria
             </p>
-            <h1 className="mt-0.5 font-display text-lg font-bold text-midnight-ink sm:text-xl">
+            <h1 className="mt-0.5 font-display text-base font-bold leading-snug text-midnight-ink sm:text-xl">
               Cards programadas para hoy
             </h1>
             <p className="mt-1 text-sm text-cool-gray">

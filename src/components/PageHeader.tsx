@@ -41,7 +41,11 @@ export function PageHeader({
           <p className="mt-1 text-sm text-cool-gray">{description}</p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? (
+        <div className="w-full shrink-0 sm:w-auto [&_a]:w-full [&_button]:w-full sm:[&_a]:w-auto sm:[&_button]:w-auto">
+          {action}
+        </div>
+      ) : null}
     </header>
   );
 }
