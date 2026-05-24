@@ -1,24 +1,14 @@
 import { AppShell } from "@/components/AppShell";
+import { ProgressSummary } from "@/components/ProgressSummary";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-
-const accountFields = [
-  { label: "Nombre", value: "Andrés Demo" },
-  { label: "Email", value: "demo@kubo.app" },
-  { label: "Universidad", value: "Universidad Demo" },
-  { label: "Carrera", value: "Psicología" },
-];
-
-const studyPreferences: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}[] = [
-  { label: "Objetivo diario", value: "50 cards" },
-  { label: "Recordatorios", value: "Activados", highlight: true },
-  { label: "Modo estudio", value: "Repetición espaciada" },
-];
+import {
+  accountFields,
+  progressStats,
+  studyPreferences,
+  userProfile,
+} from "@/lib/mock-data";
 
 export default function PerfilPage() {
   return (
@@ -29,7 +19,7 @@ export default function PerfilPage() {
             Perfil
           </h1>
           <p className="mt-1 text-sm text-cool-gray">
-            Gestión de tu información y progreso general.
+            Tu información personal y progreso de estudio.
           </p>
         </header>
 
@@ -42,30 +32,34 @@ export default function PerfilPage() {
                     className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-base font-semibold text-midnight-ink shadow-sm"
                     aria-hidden
                   >
-                    AD
+                    {userProfile.initials}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h2 className="font-display text-lg font-bold text-midnight-ink">
-                      Andrés Demo
+                      {userProfile.name}
                     </h2>
                     <p className="mt-0.5 truncate text-sm text-cool-gray">
-                      demo@kubo.app
+                      {userProfile.email}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      <Badge variant="neutral">Nivel 4</Badge>
-                      <Badge variant="xp">820 XP</Badge>
-                      <Badge variant="neutral">🔥 Racha 6 días</Badge>
+                      <Badge variant="neutral">Nivel {userProfile.level}</Badge>
+                      <Badge variant="xp">{userProfile.xp} XP</Badge>
+                      <Badge variant="neutral">
+                        Racha {progressStats.currentStreak} días
+                      </Badge>
                     </div>
                   </div>
                 </div>
               </Card>
+
+              <ProgressSummary />
 
               <Card className="p-4 sm:p-5">
                 <h2 className="font-display text-base font-semibold text-midnight-ink">
                   Preferencias de estudio
                 </h2>
                 <p className="mt-0.5 text-xs text-cool-gray">
-                  Configuración visual de tu rutina
+                  Configuración de tu rutina diaria
                 </p>
                 <ul className="mt-3 divide-y divide-cool-gray/15 rounded-xl border border-cool-gray/15 bg-soft-cloud/40">
                   {studyPreferences.map((pref) => (
@@ -74,7 +68,7 @@ export default function PerfilPage() {
                       className="flex items-center justify-between gap-3 px-3.5 py-2.5"
                     >
                       <span className="text-sm text-cool-gray">{pref.label}</span>
-                      {pref.highlight ? (
+                      {"highlight" in pref && pref.highlight ? (
                         <Badge variant="xp" className="shrink-0">
                           {pref.value}
                         </Badge>

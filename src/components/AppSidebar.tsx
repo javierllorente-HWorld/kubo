@@ -32,9 +32,11 @@ export function AppSidebar() {
       <nav className="flex flex-1 flex-col gap-1.5 px-3 py-4">
         {navItems.map((item) => {
           const isActive =
-            item.href === "/materias"
-              ? pathname.startsWith("/materias")
-              : pathname === item.href;
+            item.href === "/dashboard"
+              ? pathname === item.href || pathname.startsWith("/estudiar")
+              : item.href === "/materias"
+                ? pathname.startsWith("/materias")
+                : pathname === item.href;
 
           return (
             <Link

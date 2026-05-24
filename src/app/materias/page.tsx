@@ -1,31 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { DeckCard } from "@/components/DeckCard";
+import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Input, InputLabel } from "@/components/ui/Input";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { decks } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
-
-const subjects = [
-  {
-    name: "Psicología Cognitiva",
-    emoji: "🧠",
-    percent: 64,
-    current: 128,
-    total: 200,
-    href: "/materias/psicologia-cognitiva",
-  },
-  {
-    name: "Psicología Social",
-    emoji: "👥",
-    percent: 42,
-    current: 84,
-    total: 200,
-  },
-];
 
 const iconOptions = ["🧠", "👥", "📚", "🧪", "📝", "🎓"] as const;
 
@@ -51,66 +33,45 @@ export default function MateriasPage() {
               Materias
             </h1>
             <p className="mt-1 text-sm text-cool-gray">
-              Organizá tus materias y seguí tu progreso.
+              Gestioná tus decks y empezá a estudiar cuando quieras.
             </p>
           </header>
 
           <section>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {subjects.map((subject) => {
-              const card = (
-                <Card className="h-full p-5 transition-shadow hover:shadow-card-lg">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex h-11 w-11 items-center justify-center rounded-xl bg-soft-cloud text-xl"
-                      aria-hidden
-                    >
-                      {subject.emoji}
-                    </span>
-                    <div>
-                      <p className="font-display font-semibold text-midnight-ink">
-                        {subject.name}
-                      </p>
-                      <p className="text-xs text-cool-gray">
-                        {subject.percent}% completado
-                      </p>
-                    </div>
-                  </div>
-                  <ProgressBar value={subject.percent} className="mt-4" />
-                  <p className="mt-3 text-sm text-cool-gray">
-                    {subject.current}/{subject.total} cards
-                  </p>
-                </Card>
-              );
+            {decks.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {decks.map((deck) => (
+                  <DeckCard key={deck.slug} deck={deck} />
+                ))}
 
-              if ("href" in subject && subject.href) {
-                return (
-                  <Link key={subject.name} href={subject.href} className="block">
-                    {card}
-                  </Link>
-                );
-              }
-
-              return <div key={subject.name}>{card}</div>;
-            })}
-
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="flex min-h-[11.5rem] cursor-pointer flex-col items-center justify-center rounded-2xl border border-electric-lime/30 bg-white p-5 shadow-card transition-colors hover:border-electric-lime/50 hover:bg-electric-lime/5"
-              aria-label="Agregar materia"
-            >
-              <span
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-electric-lime/20 font-display text-2xl font-semibold text-midnight-ink"
-                aria-hidden
-              >
-                +
-              </span>
-              <span className="mt-3 font-display text-sm font-semibold text-midnight-ink">
-                Agregar materia
-              </span>
-            </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex min-h-[14rem] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-electric-lime/40 bg-white p-5 shadow-card transition-colors hover:border-electric-lime/60 hover:bg-electric-lime/5"
+                  aria-label="Agregar materia"
+                >
+                  <span
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-electric-lime/20 font-display text-2xl font-semibold text-midnight-ink"
+                    aria-hidden
+                  >
+                    +
+                  </span>
+                  <span className="mt-3 font-display text-sm font-semibold text-midnight-ink">
+                    Agregar materia
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <EmptyState
+                title="Todavía no tenés materias"
+                description="Creá tu primera materia para empezar a estudiar con repetición espaciada."
+                action={
+                  <Button type="button" onClick={() => setIsModalOpen(true)}>
+                    Agregar materia
+                  </Button>
+                }
+              />
+            )}
           </section>
         </div>
       </main>
