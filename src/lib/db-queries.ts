@@ -215,7 +215,7 @@ async function fetchDeckStatsRows(slug?: string): Promise<DeckStatsRow[]> {
     `SELECT d.id,
             d.subject_id,
             d.name,
-            d.emoji,
+            s.emoji,
             COUNT(c.id) FILTER (WHERE c.deleted_at IS NULL)::int AS total_cards,
             COUNT(c.id) FILTER (
               WHERE c.deleted_at IS NULL AND c.status = 'review'
@@ -230,7 +230,7 @@ async function fetchDeckStatsRows(slug?: string): Promise<DeckStatsRow[]> {
        AND s.deleted_at IS NULL
        AND s.user_id = ${firstUserIdSubquery}
        ${nameFilter}
-     GROUP BY d.id, d.subject_id, d.name, d.emoji
+     GROUP BY d.id, d.subject_id, d.name, s.emoji
      ORDER BY d.name ASC`,
     params,
   );
@@ -324,7 +324,7 @@ export async function getDueCardsForDailySession(): Promise<StudySessionCard[]> 
             c.answer,
             c.status,
             d.name AS deck_name,
-            d.emoji AS deck_emoji
+            s.emoji AS deck_emoji
      FROM cards c
      INNER JOIN decks d ON d.id = c.deck_id
      INNER JOIN subjects s ON s.id = d.subject_id
