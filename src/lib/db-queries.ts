@@ -1,4 +1,4 @@
-import sql from "@/lib/db";
+import { query } from "@/lib/db";
 
 export type DemoUser = {
   id: string;
@@ -10,11 +10,9 @@ export type DemoUser = {
 };
 
 export async function getDemoUser(): Promise<DemoUser | null> {
-  const rows = await sql<DemoUser[]>`
-    SELECT id, name, email, career, university, total_xp
-    FROM users
-    LIMIT 1
-  `;
+  const rows = await query<DemoUser>(
+    "SELECT id, name, email, career, university, total_xp FROM users LIMIT 1",
+  );
 
   return rows[0] ?? null;
 }
