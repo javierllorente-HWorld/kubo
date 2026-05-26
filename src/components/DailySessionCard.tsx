@@ -1,10 +1,14 @@
 import { DailyGoalRing } from "@/components/DailyGoalRing";
 import { ButtonLink } from "@/components/ButtonLink";
 import { Card } from "@/components/ui/Card";
-import { dailySession } from "@/lib/mock-data";
+import type { DashboardDailySession } from "@/lib/db-queries";
 import { cn } from "@/lib/cn";
 
-export function DailySessionCard() {
+type DailySessionCardProps = {
+  dailySession: DashboardDailySession;
+};
+
+export function DailySessionCard({ dailySession }: DailySessionCardProps) {
   const hasPending = dailySession.pendingTotal > 0;
 
   if (!hasPending) {
@@ -68,10 +72,7 @@ export function DailySessionCard() {
         />
       </div>
 
-      <ButtonLink
-        href="/estudiar/sesion"
-        className="mt-5 w-full rounded-2xl"
-      >
+      <ButtonLink href="/estudiar/sesion" className="mt-5 w-full rounded-2xl">
         Estudiar sesión
       </ButtonLink>
     </Card>

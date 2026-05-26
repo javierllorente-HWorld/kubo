@@ -1,10 +1,12 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { BackLink } from "@/components/BackLink";
 import { StudySession } from "@/components/StudySession";
 import { EmptyState } from "@/components/EmptyState";
 import { ButtonLink } from "@/components/ButtonLink";
-import { getDeckBySlug, getDeckSessionCards } from "@/lib/mock-data";
+import { getDeckBySlug, getDeckSessionCards } from "@/lib/db-queries";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -12,13 +14,13 @@ type PageProps = {
 
 export default async function EstudiarDeckPage({ params }: PageProps) {
   const { slug } = await params;
-  const deck = getDeckBySlug(slug);
+  const deck = await getDeckBySlug(slug);
 
   if (!deck) {
     notFound();
   }
 
-  const sessionCards = getDeckSessionCards(slug);
+  const sessionCards = await getDeckSessionCards(slug);
 
   return (
     <AppShell compactHeader>
@@ -36,12 +38,24 @@ export default async function EstudiarDeckPage({ params }: PageProps) {
               <BackLink href="/materias">Volver a materias</BackLink>
               <EmptyState
                 className="mt-6"
-                title="Este deck todavía no tiene cards"
-                description="Agregá preguntas y respuestas para empezar a estudiar."
+                title={
+                  deck.totalCards === 0
+                    ? "Este deck todavía no tiene cards"
+                    : "No hay cards pendientes en este deck"
+                }
+                description={
+                  deck.totalCards === 0
+                    ? "Agregá preguntas y respuestas para empezar a estudiar."
+                    : "Volvé más tarde o seguí con tu sesión diaria desde el inicio."
+                }
                 action={
-                  <ButtonLink href={`/materias/${slug}/editar`}>
-                    Ir a editar deck
-                  </ButtonLink>
+                  deck.totalCards === 0 ? (
+                    <ButtonLink href={`/materias/${slug}/editar`}>
+                      Ir a editar deck
+                    </ButtonLink>
+                  ) : (
+                    <ButtonLink href="/dashboard">Ir al inicio</ButtonLink>
+                  )
                 }
               />
             </>

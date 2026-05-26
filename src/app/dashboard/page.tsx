@@ -1,15 +1,21 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/Card";
 import { DailySessionCard } from "@/components/DailySessionCard";
 import { DeckPreviewCard } from "@/components/DeckPreviewCard";
 import { PageHeader } from "@/components/PageHeader";
-import { decks, streakData, userProfile } from "@/lib/mock-data";
+import { getDashboardData } from "@/lib/db-queries";
+import { streakData } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
 
-export default function DashboardPage() {
-  const previewDecks = decks.slice(0, 2);
-  const firstName = userProfile.name.split(" ")[0];
+export default async function DashboardPage() {
+  const { previewDecks, dailySession, stats, firstName } =
+    await getDashboardData();
+
+  const currentStreak = stats?.current_streak_days ?? 0;
+  const bestStreak = stats?.best_streak_days ?? 0;
 
   return (
     <AppShell>
@@ -23,7 +29,7 @@ export default function DashboardPage() {
 
           <div className="grid gap-4 xl:grid-cols-3 xl:gap-5">
             <div className="order-1 xl:order-none xl:col-start-3 xl:row-span-2 xl:row-start-1">
-              <DailySessionCard />
+              <DailySessionCard dailySession={dailySession} />
             </div>
 
             <section className="order-2 xl:order-none xl:col-span-2 xl:row-start-1">
@@ -38,10 +44,10 @@ export default function DashboardPage() {
                   <div className="min-w-0">
                     <p className="text-sm text-cool-gray">Racha actual</p>
                     <p className="mt-1 font-display text-2xl font-bold text-midnight-ink">
-                      {streakData.current} días
+                      {currentStreak} días
                     </p>
                     <p className="mt-0.5 text-xs font-medium text-midnight-ink/80">
-                      Mejor racha: {streakData.best} días
+                      Mejor racha: {bestStreak} días
                     </p>
                   </div>
                   <div
@@ -89,15 +95,21 @@ export default function DashboardPage() {
                     Ver todos
                   </Link>
                 </div>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {previewDecks.map((deck) => (
-                    <DeckPreviewCard
-                      key={deck.slug}
-                      deck={deck}
-                      href={`/materias/${deck.slug}/estudiar`}
-                    />
-                  ))}
-                </div>
+                {previewDecks.length > 0 ? (
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {previewDecks.map((deck) => (
+                      <DeckPreviewCard
+                        key={deck.slug}
+                        deck={deck}
+                        href={`/materias/${deck.slug}/estudiar`}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-cool-gray">
+                    Todavía no tenés decks para mostrar.
+                  </p>
+                )}
               </section>
             </div>
           </div>

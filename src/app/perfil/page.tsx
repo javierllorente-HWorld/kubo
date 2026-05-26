@@ -1,18 +1,100 @@
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
-import { ProgressSummary } from "@/components/ProgressSummary";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/StatCard";
 import {
-  accountFields,
-  progressStats,
-  studyPreferences,
-  userProfile,
-} from "@/lib/mock-data";
+  getUserProfile,
+  getUserSettings,
+  getUserStats,
+} from "@/lib/db-queries";
 
-export default function PerfilPage() {
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function getLevelFromXp(totalXp: number): number {
+  return Math.max(1, Math.floor(totalXp / 200));
+}
+
+function formatAccuracy(value: number): number {
+  return value <= 1 ? Math.round(value * 100) : Math.round(value);
+}
+
+function formatDeckLabel(deckId: string | null | undefined): string {
+  if (!deckId) {
+    return "Sin datos todavía";
+  }
+
+  return deckId;
+}
+
+export default async function PerfilPage() {
+  const [profile, settings, stats] = await Promise.all([
+    getUserProfile(),
+    getUserSettings(),
+    getUserStats(),
+  ]);
+
+  const name = profile?.name ?? "—";
+  const email = profile?.email ?? "—";
+  const career = profile?.career ?? "—";
+  const university = profile?.university ?? "—";
+  const totalXp = profile?.total_xp ?? 0;
+  const initials = profile ? getInitials(profile.name) : "—";
+  const level = getLevelFromXp(totalXp);
+
+  const studyPreferences = [
+    {
+      label: "Objetivo diario",
+      value: `${settings?.daily_goal_cards ?? "—"} cards`,
+    },
+    { label: "Recordatorios", value: "Activados", highlight: true as const },
+    { label: "Modo estudio", value: settings?.study_mode ?? "—" },
+  ];
+
+  const progressSummaryStats = [
+    {
+      label: "Racha actual",
+      value: `${stats?.current_streak_days ?? 0} días`,
+    },
+    {
+      label: "Mejor racha",
+      value: `${stats?.best_streak_days ?? 0} días`,
+    },
+    {
+      label: "Cards estudiadas esta semana",
+      value: (stats?.weekly_cards_studied ?? 0).toString(),
+    },
+    {
+      label: "Precisión promedio",
+      value: `${formatAccuracy(stats?.average_accuracy ?? 0)}%`,
+    },
+    {
+      label: "Deck más fuerte",
+      value: formatDeckLabel(stats?.strongest_deck_id),
+    },
+    {
+      label: "Deck a reforzar",
+      value: formatDeckLabel(stats?.weakest_deck_id),
+    },
+  ];
+
+  const accountFields = [
+    { label: "Nombre", value: name },
+    { label: "Email", value: email },
+    { label: "Universidad", value: university },
+    { label: "Carrera", value: career },
+  ];
+
   return (
     <AppShell>
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
@@ -30,27 +112,43 @@ export default function PerfilPage() {
                     className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-base font-semibold text-midnight-ink shadow-sm"
                     aria-hidden
                   >
-                    {userProfile.initials}
+                    {initials}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h2 className="font-display text-lg font-bold text-midnight-ink">
-                      {userProfile.name}
+                      {name}
                     </h2>
                     <p className="mt-0.5 truncate text-sm text-cool-gray">
-                      {userProfile.email}
+                      {email}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      <Badge variant="neutral">Nivel {userProfile.level}</Badge>
-                      <Badge variant="xp">{userProfile.xp} XP</Badge>
+                      <Badge variant="neutral">Nivel {level}</Badge>
+                      <Badge variant="xp">{totalXp} XP</Badge>
                       <Badge variant="neutral">
-                        Racha {progressStats.currentStreak} días
+                        Racha {stats?.current_streak_days ?? 0} días
                       </Badge>
                     </div>
                   </div>
                 </div>
               </Card>
 
-              <ProgressSummary />
+              <Card className="p-4 sm:p-5">
+                <h2 className="font-display text-base font-semibold text-midnight-ink">
+                  Resumen de progreso
+                </h2>
+                <p className="mt-0.5 text-xs text-cool-gray">
+                  Tu rendimiento reciente de estudio
+                </p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {progressSummaryStats.map((stat) => (
+                    <StatCard
+                      key={stat.label}
+                      label={stat.label}
+                      value={stat.value}
+                    />
+                  ))}
+                </div>
+              </Card>
 
               <Card className="p-4 sm:p-5">
                 <h2 className="font-display text-base font-semibold text-midnight-ink">

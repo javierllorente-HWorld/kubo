@@ -76,3 +76,305 @@ export async function getUserStats(): Promise<UserStats | null> {
 
   return rows[0] ?? null;
 }
+
+export type DeckOverview = {
+  slug: string;
+  name: string;
+  emoji: string;
+  masteryPercent: number;
+  cardsLearned: number;
+  totalCards: number;
+  pendingToday: number;
+};
+
+export type StudyFlashcard = {
+  id: string;
+  question: string;
+  answer: string;
+  status: "repaso" | "nueva";
+};
+
+export type StudySessionCard = StudyFlashcard & {
+  deckSlug: string;
+  deckName: string;
+  deckEmoji: string;
+};
+
+export type SubjectWithDecks = {
+  id: string;
+  name: string;
+  slug: string;
+  emoji: string;
+  decks: DeckOverview[];
+};
+
+export type DashboardDailySession = {
+  pendingTotal: number;
+  dailyGoal: number;
+  completedCards: number;
+  breakdown: { slug: string; name: string; pending: number }[];
+};
+
+export type DashboardData = {
+  profile: UserProfile | null;
+  settings: UserSettings | null;
+  stats: UserStats | null;
+  previewDecks: DeckOverview[];
+  dailySession: DashboardDailySession;
+  firstName: string;
+};
+
+type DeckStatsRow = {
+  id: string;
+  subject_id: string;
+  slug: string;
+  name: string;
+  emoji: string | null;
+  total_cards: number;
+  cards_learned: number;
+  pending_today: number;
+};
+
+type SubjectRow = {
+  id: string;
+  name: string;
+  slug: string;
+  emoji: string | null;
+};
+
+type CardRow = {
+  id: string;
+  question: string;
+  answer: string;
+  status: string;
+};
+
+type DueSessionCardRow = CardRow & {
+  deck_slug: string;
+  deck_name: string;
+  deck_emoji: string | null;
+};
+
+type DailyProgressRow = {
+  cards_completed: number;
+};
+
+function mapCardStatus(status: string): "repaso" | "nueva" {
+  return status === "review" ? "repaso" : "nueva";
+}
+
+function mapDeckOverview(row: DeckStatsRow): DeckOverview {
+  const totalCards = Number(row.total_cards);
+  const cardsLearned = Number(row.cards_learned);
+  const pendingToday = Number(row.pending_today);
+  const masteryPercent =
+    totalCards === 0 ? 0 : Math.round((cardsLearned / totalCards) * 100);
+
+  return {
+    slug: row.slug,
+    name: row.name,
+    emoji: row.emoji ?? "📚",
+    masteryPercent,
+    cardsLearned,
+    totalCards,
+    pendingToday,
+  };
+}
+
+async function fetchDeckStatsRows(slug?: string): Promise<DeckStatsRow[]> {
+  const slugFilter = slug ? "AND d.slug = $1" : "";
+  const params = slug ? [slug] : [];
+
+  return query<DeckStatsRow>(
+    `SELECT d.id,
+            d.subject_id,
+            d.slug,
+            d.name,
+            d.emoji,
+            COUNT(c.id) FILTER (WHERE c.deleted_at IS NULL)::int AS total_cards,
+            COUNT(c.id) FILTER (
+              WHERE c.deleted_at IS NULL AND c.status = 'review'
+            )::int AS cards_learned,
+            COUNT(c.id) FILTER (
+              WHERE c.deleted_at IS NULL AND c.next_review_at <= NOW()
+            )::int AS pending_today
+     FROM decks d
+     INNER JOIN subjects s ON s.id = d.subject_id
+     LEFT JOIN cards c ON c.deck_id = d.id
+     WHERE d.deleted_at IS NULL
+       AND s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+       ${slugFilter}
+     GROUP BY d.id, d.subject_id, d.slug, d.name, d.emoji
+     ORDER BY d.name ASC`,
+    params,
+  );
+}
+
+async function getTodayCompletedCards(): Promise<number> {
+  const rows = await query<DailyProgressRow>(
+    `SELECT cards_completed
+     FROM daily_progress
+     WHERE user_id = ${firstUserIdSubquery}
+       AND date = CURRENT_DATE
+     LIMIT 1`,
+  );
+
+  return rows[0]?.cards_completed ?? 0;
+}
+
+export async function getDecksOverview(): Promise<DeckOverview[]> {
+  const rows = await fetchDeckStatsRows();
+  return rows.map(mapDeckOverview);
+}
+
+export async function getDeckBySlug(slug: string): Promise<DeckOverview | null> {
+  const rows = await fetchDeckStatsRows(slug);
+  const row = rows[0];
+  return row ? mapDeckOverview(row) : null;
+}
+
+export async function getSubjectsWithDecks(): Promise<SubjectWithDecks[]> {
+  const subjects = await query<SubjectRow>(
+    `SELECT id, name, slug, emoji
+     FROM subjects
+     WHERE deleted_at IS NULL
+       AND user_id = ${firstUserIdSubquery}
+     ORDER BY name ASC`,
+  );
+
+  const deckRows = await fetchDeckStatsRows();
+  const decksBySubject = new Map<string, DeckOverview[]>();
+
+  for (const row of deckRows) {
+    const deck = mapDeckOverview(row);
+    const existing = decksBySubject.get(row.subject_id) ?? [];
+    existing.push(deck);
+    decksBySubject.set(row.subject_id, existing);
+  }
+
+  return subjects.map((subject) => ({
+    id: subject.id,
+    name: subject.name,
+    slug: subject.slug,
+    emoji: subject.emoji ?? "📚",
+    decks: decksBySubject.get(subject.id) ?? [],
+  }));
+}
+
+export async function getCardsForDeck(
+  slug: string,
+  options?: { dueOnly?: boolean },
+): Promise<StudyFlashcard[]> {
+  const dueOnly = options?.dueOnly ?? false;
+  const dueFilter = dueOnly ? "AND c.next_review_at <= NOW()" : "";
+
+  const rows = await query<CardRow>(
+    `SELECT c.id, c.question, c.answer, c.status
+     FROM cards c
+     INNER JOIN decks d ON d.id = c.deck_id
+     INNER JOIN subjects s ON s.id = d.subject_id
+     WHERE d.slug = $1
+       AND c.deleted_at IS NULL
+       AND d.deleted_at IS NULL
+       AND s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+       ${dueFilter}
+     ORDER BY c.next_review_at ASC NULLS LAST`,
+    [slug],
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    question: row.question,
+    answer: row.answer,
+    status: mapCardStatus(row.status),
+  }));
+}
+
+export async function getDueCardsForDailySession(): Promise<StudySessionCard[]> {
+  const rows = await query<DueSessionCardRow>(
+    `SELECT c.id,
+            c.question,
+            c.answer,
+            c.status,
+            d.slug AS deck_slug,
+            d.name AS deck_name,
+            d.emoji AS deck_emoji
+     FROM cards c
+     INNER JOIN decks d ON d.id = c.deck_id
+     INNER JOIN subjects s ON s.id = d.subject_id
+     WHERE c.deleted_at IS NULL
+       AND d.deleted_at IS NULL
+       AND s.deleted_at IS NULL
+       AND c.next_review_at <= NOW()
+       AND s.user_id = ${firstUserIdSubquery}
+     ORDER BY c.next_review_at ASC`,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    question: row.question,
+    answer: row.answer,
+    status: mapCardStatus(row.status),
+    deckSlug: row.deck_slug,
+    deckName: row.deck_name,
+    deckEmoji: row.deck_emoji ?? "📚",
+  }));
+}
+
+export async function getDeckSessionCards(
+  slug: string,
+): Promise<StudySessionCard[]> {
+  const deck = await getDeckBySlug(slug);
+  if (!deck) {
+    return [];
+  }
+
+  const cards = await getCardsForDeck(slug, { dueOnly: true });
+  const limit =
+    deck.pendingToday > 0
+      ? Math.min(deck.pendingToday, cards.length)
+      : cards.length;
+
+  return cards.slice(0, limit).map((card) => ({
+    ...card,
+    deckSlug: deck.slug,
+    deckName: deck.name,
+    deckEmoji: deck.emoji,
+  }));
+}
+
+export async function getDashboardData(): Promise<DashboardData> {
+  const [profile, settings, stats, decks, completedCards] = await Promise.all([
+    getUserProfile(),
+    getUserSettings(),
+    getUserStats(),
+    getDecksOverview(),
+    getTodayCompletedCards(),
+  ]);
+
+  const breakdown = decks
+    .filter((deck) => deck.pendingToday > 0)
+    .map((deck) => ({
+      slug: deck.slug,
+      name: deck.name,
+      pending: deck.pendingToday,
+    }));
+
+  const pendingTotal = decks.reduce((sum, deck) => sum + deck.pendingToday, 0);
+
+  return {
+    profile,
+    settings,
+    stats,
+    previewDecks: decks.slice(0, 2),
+    dailySession: {
+      pendingTotal,
+      dailyGoal: settings?.daily_goal_cards ?? 0,
+      completedCards,
+      breakdown,
+    },
+    firstName: profile?.name.split(" ")[0] ?? "Estudiante",
+  };
+}

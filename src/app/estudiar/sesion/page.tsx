@@ -1,14 +1,17 @@
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/AppShell";
 import { BackLink } from "@/components/BackLink";
 import { StudySession } from "@/components/StudySession";
 import { EmptyState } from "@/components/EmptyState";
 import { ButtonLink } from "@/components/ButtonLink";
-import { dailySession, getSessionCards } from "@/lib/mock-data";
+import { getDueCardsForDailySession } from "@/lib/db-queries";
 
-export default function SesionDiariaPage() {
-  const sessionCards = getSessionCards();
+export default async function SesionDiariaPage() {
+  const sessionCards = await getDueCardsForDailySession();
+  const pendingTotal = sessionCards.length;
 
-  if (dailySession.pendingTotal === 0 || sessionCards.length === 0) {
+  if (pendingTotal === 0 || sessionCards.length === 0) {
     return (
       <AppShell compactHeader>
         <main className="flex-1 p-4 sm:p-5 lg:p-6">
