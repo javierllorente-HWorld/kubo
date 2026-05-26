@@ -127,7 +127,6 @@ export type DashboardData = {
 type DeckStatsRow = {
   id: string;
   subject_id: string;
-  slug: string;
   name: string;
   emoji: string | null;
   total_cards: number;
@@ -150,14 +149,41 @@ type CardRow = {
 };
 
 type DueSessionCardRow = CardRow & {
-  deck_slug: string;
   deck_name: string;
   deck_emoji: string | null;
 };
 
 type DailyProgressRow = {
-  cards_completed: number;
+  cards_reviewed: number;
 };
+
+const DECK_SLUG_TO_NAME: Record<string, string> = {
+  "psicologia-cognitiva": "Psicología Cognitiva",
+  "psicologia-social": "Psicología Social",
+};
+
+function slugToDeckName(slug: string): string {
+  return (
+    DECK_SLUG_TO_NAME[slug] ??
+    slug
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+  );
+}
+
+function deckNameToSlug(name: string): string {
+  const known = Object.entries(DECK_SLUG_TO_NAME).find(([, deckName]) => deckName === name);
+  if (known) {
+    return known[0];
+  }
+
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
+}
 
 function mapCardStatus(status: string): "repaso" | "nueva" {
   return status === "review" ? "repaso" : "nueva";
@@ -171,7 +197,7 @@ function mapDeckOverview(row: DeckStatsRow): DeckOverview {
     totalCards === 0 ? 0 : Math.round((cardsLearned / totalCards) * 100);
 
   return {
-    slug: row.slug,
+    slug: deckNameToSlug(row.name),
     name: row.name,
     emoji: row.emoji ?? "📚",
     masteryPercent,
@@ -182,13 +208,12 @@ function mapDeckOverview(row: DeckStatsRow): DeckOverview {
 }
 
 async function fetchDeckStatsRows(slug?: string): Promise<DeckStatsRow[]> {
-  const slugFilter = slug ? "AND d.slug = $1" : "";
-  const params = slug ? [slug] : [];
+  const nameFilter = slug ? "AND d.name = $1" : "";
+  const params = slug ? [slugToDeckName(slug)] : [];
 
   return query<DeckStatsRow>(
     `SELECT d.id,
             d.subject_id,
-            d.slug,
             d.name,
             d.emoji,
             COUNT(c.id) FILTER (WHERE c.deleted_at IS NULL)::int AS total_cards,
@@ -204,8 +229,8 @@ async function fetchDeckStatsRows(slug?: string): Promise<DeckStatsRow[]> {
      WHERE d.deleted_at IS NULL
        AND s.deleted_at IS NULL
        AND s.user_id = ${firstUserIdSubquery}
-       ${slugFilter}
-     GROUP BY d.id, d.subject_id, d.slug, d.name, d.emoji
+       ${nameFilter}
+     GROUP BY d.id, d.subject_id, d.name, d.emoji
      ORDER BY d.name ASC`,
     params,
   );
@@ -213,14 +238,14 @@ async function fetchDeckStatsRows(slug?: string): Promise<DeckStatsRow[]> {
 
 async function getTodayCompletedCards(): Promise<number> {
   const rows = await query<DailyProgressRow>(
-    `SELECT cards_completed
+    `SELECT cards_reviewed
      FROM daily_progress
      WHERE user_id = ${firstUserIdSubquery}
        AND date = CURRENT_DATE
      LIMIT 1`,
   );
 
-  return rows[0]?.cards_completed ?? 0;
+  return rows[0]?.cards_reviewed ?? 0;
 }
 
 export async function getDecksOverview(): Promise<DeckOverview[]> {
@@ -274,14 +299,14 @@ export async function getCardsForDeck(
      FROM cards c
      INNER JOIN decks d ON d.id = c.deck_id
      INNER JOIN subjects s ON s.id = d.subject_id
-     WHERE d.slug = $1
+     WHERE d.name = $1
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
        AND s.user_id = ${firstUserIdSubquery}
        ${dueFilter}
      ORDER BY c.next_review_at ASC NULLS LAST`,
-    [slug],
+    [slugToDeckName(slug)],
   );
 
   return rows.map((row) => ({
@@ -298,7 +323,6 @@ export async function getDueCardsForDailySession(): Promise<StudySessionCard[]> 
             c.question,
             c.answer,
             c.status,
-            d.slug AS deck_slug,
             d.name AS deck_name,
             d.emoji AS deck_emoji
      FROM cards c
@@ -317,7 +341,7 @@ export async function getDueCardsForDailySession(): Promise<StudySessionCard[]> 
     question: row.question,
     answer: row.answer,
     status: mapCardStatus(row.status),
-    deckSlug: row.deck_slug,
+    deckSlug: deckNameToSlug(row.deck_name),
     deckName: row.deck_name,
     deckEmoji: row.deck_emoji ?? "📚",
   }));
