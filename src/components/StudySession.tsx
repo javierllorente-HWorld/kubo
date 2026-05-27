@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { BackLink } from "@/components/BackLink";
 import { SessionComplete, type SessionStats } from "@/components/SessionComplete";
 import { StudyCard } from "@/components/StudyCard";
 import { StudySessionHeader } from "@/components/StudySessionHeader";
+import { reviewCardAction } from "@/app/study/actions";
 import type { SessionCard } from "@/lib/mock-data";
 
 type StudySessionProps = {
@@ -12,6 +13,8 @@ type StudySessionProps = {
   mode: "daily" | "deck";
   backHref: string;
   backLabel: string;
+  usingMockFallback?: boolean;
+  deckSlug?: string;
 };
 
 const emptyStats: SessionStats = {
@@ -25,10 +28,13 @@ export function StudySession({
   mode,
   backHref,
   backLabel,
+  usingMockFallback = false,
+  deckSlug,
 }: StudySessionProps) {
   const [cardIndex, setCardIndex] = useState(0);
   const [stats, setStats] = useState<SessionStats>(emptyStats);
   const [isComplete, setIsComplete] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   if (isComplete) {
     return <SessionComplete stats={stats} />;
@@ -37,7 +43,7 @@ export function StudySession({
   const currentCard = cards[cardIndex];
   const sessionTotal = cards.length;
 
-  function handleRate() {
+  function advanceAfterRating(ratingLabel: string) {
     setStats((prev) => ({
       studied: prev.studied + 1,
       newCards: prev.newCards + (currentCard.status === "nueva" ? 1 : 0),
@@ -50,6 +56,25 @@ export function StudySession({
     }
 
     setCardIndex((index) => index + 1);
+  }
+
+  function handleRate(ratingLabel: string) {
+    if (usingMockFallback) {
+      advanceAfterRating(ratingLabel);
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await reviewCardAction(currentCard.id, ratingLabel, {
+        deckSlug,
+      });
+
+      if (!result.ok) {
+        console.error("[StudySession] reviewCardAction:", result.error);
+      }
+
+      advanceAfterRating(ratingLabel);
+    });
   }
 
   return (
@@ -70,7 +95,12 @@ export function StudySession({
       </div>
 
       <div className="mt-5">
-        <StudyCard key={currentCard.id} card={currentCard} onRate={handleRate} />
+        <StudyCard
+          key={currentCard.id}
+          card={currentCard}
+          onRate={handleRate}
+          isRatingDisabled={isPending}
+        />
       </div>
     </>
   );

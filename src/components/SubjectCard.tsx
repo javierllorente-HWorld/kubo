@@ -47,7 +47,7 @@ export function SubjectCard({ subject, onEdit, onDelete }: SubjectCardProps) {
             className="min-h-11 w-full flex-1 sm:w-auto"
             onClick={onEdit}
           >
-            Editar
+            Editar materia
           </Button>
           <Button
             type="button"
@@ -55,7 +55,7 @@ export function SubjectCard({ subject, onEdit, onDelete }: SubjectCardProps) {
             className="min-h-11 w-full flex-1 text-red-700 hover:bg-red-50 sm:w-auto"
             onClick={onDelete}
           >
-            Eliminar
+            Eliminar materia
           </Button>
         </div>
       </div>

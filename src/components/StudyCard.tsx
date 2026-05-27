@@ -8,10 +8,15 @@ import type { Flashcard } from "@/lib/mock-data";
 
 type StudyCardProps = {
   card: Flashcard;
-  onRate?: () => void;
+  onRate?: (ratingLabel: string) => void;
+  isRatingDisabled?: boolean;
 };
 
-export function StudyCard({ card, onRate }: StudyCardProps) {
+export function StudyCard({
+  card,
+  onRate,
+  isRatingDisabled = false,
+}: StudyCardProps) {
   const [showAnswer, setShowAnswer] = useState(false);
 
   return (
@@ -53,7 +58,10 @@ export function StudyCard({ card, onRate }: StudyCardProps) {
 
       {showAnswer ? (
         <Card className="w-full p-4 shadow-card sm:p-5">
-          <RatingButtons onRate={() => onRate?.()} />
+          <RatingButtons
+            onRate={onRate}
+            disabled={isRatingDisabled}
+          />
         </Card>
       ) : null}
     </div>

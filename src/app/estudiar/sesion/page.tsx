@@ -55,6 +55,7 @@ export default async function SesionDiariaPage() {
               mode="daily"
               backHref="/dashboard"
               backLabel="Volver al inicio"
+              usingMockFallback={usingMockFallback}
             />
           </MockAuditSection>
         </div>

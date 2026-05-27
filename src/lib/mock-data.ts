@@ -1,6 +1,8 @@
 export type Deck = {
+  id: string;
   slug: string;
   name: string;
+  description: string | null;
   emoji: string;
   masteryPercent: number;
   cardsLearned: number;
@@ -43,8 +45,10 @@ export const userProfile: UserProfile = {
 
 export const decks: Deck[] = [
   {
+    id: "mock-deck-cognitiva",
     slug: "psicologia-cognitiva",
     name: "Psicología Cognitiva",
+    description: null,
     emoji: "🧠",
     masteryPercent: 64,
     cardsLearned: 128,
@@ -52,8 +56,10 @@ export const decks: Deck[] = [
     pendingToday: 24,
   },
   {
+    id: "mock-deck-social",
     slug: "psicologia-social",
     name: "Psicología Social",
+    description: null,
     emoji: "👥",
     masteryPercent: 42,
     cardsLearned: 84,

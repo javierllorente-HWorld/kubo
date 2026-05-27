@@ -1,4 +1,10 @@
-import { query } from "@/lib/db";
+import { query, withTransaction } from "@/lib/db";
+import {
+  getNextReviewAtSql,
+  getRatingCardStatus,
+  getRatingXp,
+  type StudyRating,
+} from "@/lib/study-rating";
 
 export type DemoUser = {
   id: string;
@@ -78,8 +84,10 @@ export async function getUserStats(): Promise<UserStats | null> {
 }
 
 export type DeckOverview = {
+  id: string;
   slug: string;
   name: string;
+  description: string | null;
   emoji: string;
   masteryPercent: number;
   cardsLearned: number;
@@ -135,10 +143,17 @@ type DeckStatsRow = {
   id: string;
   subject_id: string;
   name: string;
+  description: string | null;
   emoji: string | null;
   total_cards: number;
   cards_learned: number;
   pending_today: number;
+};
+
+type DeckWriteRow = {
+  id: string;
+  name: string;
+  description: string | null;
 };
 
 type SubjectRow = {
@@ -204,8 +219,10 @@ function mapDeckOverview(row: DeckStatsRow): DeckOverview {
     totalCards === 0 ? 0 : Math.round((cardsLearned / totalCards) * 100);
 
   return {
+    id: row.id,
     slug: deckNameToSlug(row.name),
     name: row.name,
+    description: row.description,
     emoji: row.emoji ?? "📚",
     masteryPercent,
     cardsLearned,
@@ -241,6 +258,7 @@ async function fetchDeckStatsRows(
     `SELECT d.id,
             d.subject_id,
             d.name,
+            d.description,
             s.emoji,
             COUNT(c.id) FILTER (WHERE c.deleted_at IS NULL)::int AS total_cards,
             COUNT(c.id) FILTER (
@@ -256,7 +274,7 @@ async function fetchDeckStatsRows(
        AND s.deleted_at IS NULL
        AND s.user_id = ${firstUserIdSubquery}
        ${extraFilters}
-     GROUP BY d.id, d.subject_id, d.name, s.emoji
+     GROUP BY d.id, d.subject_id, d.name, d.description, s.emoji
      ORDER BY d.name ASC`,
     params,
   );
@@ -285,6 +303,26 @@ export async function getDeckBySlug(slug: string): Promise<DeckOverview | null> 
   return row ? mapDeckOverview(row) : null;
 }
 
+export type DeckEditContext = {
+  deck: DeckOverview;
+  subjectId: string;
+};
+
+export async function getDeckEditContextBySlug(
+  slug: string,
+): Promise<DeckEditContext | null> {
+  const rows = await fetchDeckStatsRows({ slug });
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    deck: mapDeckOverview(row),
+    subjectId: row.subject_id,
+  };
+}
+
 export async function getSubjectById(
   subjectId: string,
 ): Promise<SubjectOverview | null> {
@@ -311,6 +349,110 @@ export async function getDecksBySubjectId(
 ): Promise<DeckOverview[]> {
   const rows = await fetchDeckStatsRows({ subjectId });
   return rows.map(mapDeckOverview);
+}
+
+export async function createDeck(
+  subjectId: string,
+  name: string,
+  description?: string | null,
+): Promise<DeckOverview> {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    throw new Error("El nombre del deck es obligatorio");
+  }
+
+  const trimmedDescription = description?.trim() || null;
+
+  const rows = await query<DeckWriteRow>(
+    `INSERT INTO decks (subject_id, name, description)
+     SELECT $1, $2, $3
+     WHERE EXISTS (
+       SELECT 1
+       FROM subjects s
+       WHERE s.id = $1
+         AND s.deleted_at IS NULL
+         AND s.user_id = ${firstUserIdSubquery}
+     )
+     RETURNING id, name, description`,
+    [subjectId, trimmedName, trimmedDescription],
+  );
+
+  const row = rows[0];
+  if (!row) {
+    throw new Error("No se pudo crear el deck");
+  }
+
+  const decks = await getDecksBySubjectId(subjectId);
+  const created = decks.find((deck) => deck.id === row.id);
+  if (created) {
+    return created;
+  }
+
+  return {
+    id: row.id,
+    slug: deckNameToSlug(row.name),
+    name: row.name,
+    description: row.description,
+    emoji: "📚",
+    masteryPercent: 0,
+    cardsLearned: 0,
+    totalCards: 0,
+    pendingToday: 0,
+  };
+}
+
+export async function updateDeck(
+  deckId: string,
+  name: string,
+  description?: string | null,
+): Promise<DeckOverview | null> {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    throw new Error("El nombre del deck es obligatorio");
+  }
+
+  const trimmedDescription = description?.trim() || null;
+
+  const rows = await query<{ subject_id: string } & DeckWriteRow>(
+    `UPDATE decks d
+     SET name = $2,
+         description = $3,
+         updated_at = NOW()
+     FROM subjects s
+     WHERE d.id = $1
+       AND d.subject_id = s.id
+       AND d.deleted_at IS NULL
+       AND s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+     RETURNING d.id, d.name, d.description, d.subject_id`,
+    [deckId, trimmedName, trimmedDescription],
+  );
+
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+
+  const decks = await getDecksBySubjectId(row.subject_id);
+  return decks.find((deck) => deck.id === row.id) ?? null;
+}
+
+export async function deleteDeck(deckId: string): Promise<boolean> {
+  const rows = await query<{ id: string }>(
+    `UPDATE decks d
+     SET deleted_at = NOW(),
+         updated_at = NOW()
+     FROM subjects s
+     WHERE d.id = $1
+       AND d.subject_id = s.id
+       AND d.deleted_at IS NULL
+       AND s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+     RETURNING d.id`,
+    [deckId],
+  );
+
+  return rows.length > 0;
 }
 
 type SubjectListRow = {
@@ -447,6 +589,15 @@ export async function getSubjectsWithDecks(): Promise<SubjectWithDecks[]> {
   }));
 }
 
+function mapStudyFlashcard(row: CardRow): StudyFlashcard {
+  return {
+    id: row.id,
+    question: row.question,
+    answer: row.answer,
+    status: mapCardStatus(row.status),
+  };
+}
+
 export async function getCardsForDeck(
   slug: string,
   options?: { dueOnly?: boolean },
@@ -465,16 +616,128 @@ export async function getCardsForDeck(
        AND s.deleted_at IS NULL
        AND s.user_id = ${firstUserIdSubquery}
        ${dueFilter}
-     ORDER BY c.next_review_at ASC NULLS LAST`,
+     ORDER BY c.created_at ASC NULLS LAST, c.id ASC`,
     [slugToDeckName(slug)],
   );
 
-  return rows.map((row) => ({
-    id: row.id,
-    question: row.question,
-    answer: row.answer,
-    status: mapCardStatus(row.status),
-  }));
+  return rows.map(mapStudyFlashcard);
+}
+
+export async function getCardsForDeckByDeckId(
+  deckId: string,
+): Promise<StudyFlashcard[]> {
+  const rows = await query<CardRow>(
+    `SELECT c.id, c.question, c.answer, c.status
+     FROM cards c
+     INNER JOIN decks d ON d.id = c.deck_id
+     INNER JOIN subjects s ON s.id = d.subject_id
+     WHERE c.deck_id = $1
+       AND c.deleted_at IS NULL
+       AND d.deleted_at IS NULL
+       AND s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+     ORDER BY c.created_at ASC NULLS LAST, c.id ASC`,
+    [deckId],
+  );
+
+  return rows.map(mapStudyFlashcard);
+}
+
+export async function createCard(
+  deckId: string,
+  question: string,
+  answer: string,
+): Promise<StudyFlashcard> {
+  const trimmedQuestion = question.trim();
+  const trimmedAnswer = answer.trim();
+
+  if (!trimmedQuestion) {
+    throw new Error("La pregunta es obligatoria");
+  }
+
+  if (!trimmedAnswer) {
+    throw new Error("La respuesta es obligatoria");
+  }
+
+  const rows = await query<CardRow>(
+    `INSERT INTO cards (deck_id, question, answer, status, review_count, next_review_at)
+     SELECT $1, $2, $3, 'new', 0, NOW()
+     WHERE EXISTS (
+       SELECT 1
+       FROM decks d
+       INNER JOIN subjects s ON s.id = d.subject_id
+       WHERE d.id = $1
+         AND d.deleted_at IS NULL
+         AND s.deleted_at IS NULL
+         AND s.user_id = ${firstUserIdSubquery}
+     )
+     RETURNING id, question, answer, status`,
+    [deckId, trimmedQuestion, trimmedAnswer],
+  );
+
+  const row = rows[0];
+  if (!row) {
+    throw new Error("No se pudo crear la card");
+  }
+
+  return mapStudyFlashcard(row);
+}
+
+export async function updateCard(
+  cardId: string,
+  question: string,
+  answer: string,
+): Promise<StudyFlashcard | null> {
+  const trimmedQuestion = question.trim();
+  const trimmedAnswer = answer.trim();
+
+  if (!trimmedQuestion) {
+    throw new Error("La pregunta es obligatoria");
+  }
+
+  if (!trimmedAnswer) {
+    throw new Error("La respuesta es obligatoria");
+  }
+
+  const rows = await query<CardRow>(
+    `UPDATE cards c
+     SET question = $2,
+         answer = $3,
+         updated_at = NOW()
+     FROM decks d
+     INNER JOIN subjects s ON s.id = d.subject_id
+     WHERE c.id = $1
+       AND c.deck_id = d.id
+       AND c.deleted_at IS NULL
+       AND d.deleted_at IS NULL
+       AND s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+     RETURNING c.id, c.question, c.answer, c.status`,
+    [cardId, trimmedQuestion, trimmedAnswer],
+  );
+
+  const row = rows[0];
+  return row ? mapStudyFlashcard(row) : null;
+}
+
+export async function deleteCard(cardId: string): Promise<boolean> {
+  const rows = await query<{ id: string }>(
+    `UPDATE cards c
+     SET deleted_at = NOW(),
+         updated_at = NOW()
+     FROM decks d
+     INNER JOIN subjects s ON s.id = d.subject_id
+     WHERE c.id = $1
+       AND c.deck_id = d.id
+       AND c.deleted_at IS NULL
+       AND d.deleted_at IS NULL
+       AND s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+     RETURNING c.id`,
+    [cardId],
+  );
+
+  return rows.length > 0;
 }
 
 export async function getDueCardsForDailySession(): Promise<StudySessionCard[]> {
@@ -561,4 +824,88 @@ export async function getDashboardData(): Promise<DashboardData> {
     },
     firstName: profile?.name.split(" ")[0] ?? "Estudiante",
   };
+}
+
+export async function reviewCard(
+  cardId: string,
+  rating: StudyRating,
+): Promise<void> {
+  const xpEarned = getRatingXp(rating);
+  const cardStatus = getRatingCardStatus(rating);
+  const nextReviewAtSql = getNextReviewAtSql(rating);
+
+  await withTransaction(async (queryInTx) => {
+    const reviewRows = await queryInTx<{ id: string }>(
+      `INSERT INTO card_reviews (card_id, user_id, rating, xp_earned)
+       SELECT $1,
+              ${firstUserIdSubquery},
+              $2,
+              $3
+       WHERE EXISTS (
+         SELECT 1
+         FROM cards c
+         INNER JOIN decks d ON d.id = c.deck_id
+         INNER JOIN subjects s ON s.id = d.subject_id
+         WHERE c.id = $1
+           AND c.deleted_at IS NULL
+           AND d.deleted_at IS NULL
+           AND s.deleted_at IS NULL
+           AND s.user_id = ${firstUserIdSubquery}
+       )
+       RETURNING id`,
+      [cardId, rating, xpEarned],
+    );
+
+    if (!reviewRows[0]) {
+      throw new Error("No se pudo registrar la revisión de la card");
+    }
+
+    const cardRows = await queryInTx<{ id: string }>(
+      `UPDATE cards c
+       SET status = $2,
+           review_count = c.review_count + 1,
+           last_reviewed_at = NOW(),
+           next_review_at = ${nextReviewAtSql},
+           updated_at = NOW()
+       FROM decks d
+       INNER JOIN subjects s ON s.id = d.subject_id
+       WHERE c.id = $1
+         AND c.deck_id = d.id
+         AND c.deleted_at IS NULL
+         AND d.deleted_at IS NULL
+         AND s.deleted_at IS NULL
+         AND s.user_id = ${firstUserIdSubquery}
+       RETURNING c.id`,
+      [cardId, cardStatus],
+    );
+
+    if (!cardRows[0]) {
+      throw new Error("No se pudo actualizar la card");
+    }
+
+    await queryInTx(
+      `UPDATE users
+       SET total_xp = total_xp + $1
+       WHERE id = ${firstUserIdSubquery}`,
+      [xpEarned],
+    );
+
+    const progressUpdated = await queryInTx<{ id: string }>(
+      `UPDATE daily_progress
+       SET cards_reviewed = cards_reviewed + 1,
+           xp_earned = xp_earned + $1
+       WHERE user_id = ${firstUserIdSubquery}
+         AND date = CURRENT_DATE
+       RETURNING id`,
+      [xpEarned],
+    );
+
+    if (!progressUpdated[0]) {
+      await queryInTx(
+        `INSERT INTO daily_progress (user_id, date, cards_reviewed, xp_earned)
+         VALUES (${firstUserIdSubquery}, CURRENT_DATE, 1, $1)`,
+        [xpEarned],
+      );
+    }
+  });
 }

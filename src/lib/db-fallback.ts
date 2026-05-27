@@ -1,6 +1,8 @@
 import type {
   DashboardData,
+  DeckEditContext,
   DeckOverview,
+  StudyFlashcard,
   StudySessionCard,
   SubjectOverview,
   UserProfile,
@@ -12,6 +14,7 @@ import {
   dailySession,
   decks,
   getDeckBySlug,
+  getDeckCards,
   getDeckSessionCards,
   getSessionCards,
   progressStats,
@@ -98,4 +101,32 @@ export function getMockDeckBySlug(slug: string): DeckOverview | null {
 
 export function getMockDeckSessionCards(slug: string): StudySessionCard[] {
   return getDeckSessionCards(slug);
+}
+
+function findMockSubjectIdForDeckSlug(slug: string): string | null {
+  for (const [subjectId, subjectDecks] of Object.entries(decksBySubjectId)) {
+    if (subjectDecks.some((deck) => deck.slug === slug)) {
+      return subjectId;
+    }
+  }
+
+  return null;
+}
+
+export function getMockDeckEditContext(slug: string): DeckEditContext | null {
+  const deck = getDeckBySlug(slug);
+  const subjectId = findMockSubjectIdForDeckSlug(slug);
+
+  if (!deck || !subjectId) {
+    return null;
+  }
+
+  return {
+    deck: { ...deck },
+    subjectId,
+  };
+}
+
+export function getMockDeckCards(slug: string): StudyFlashcard[] {
+  return getDeckCards(slug).map((card) => ({ ...card }));
 }

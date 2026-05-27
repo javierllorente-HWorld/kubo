@@ -1,15 +1,18 @@
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ButtonLink";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import type { Deck } from "@/lib/mock-data";
+import type { DeckOverview } from "@/lib/db-queries";
 
 type DeckCardProps = {
-  deck: Deck;
+  deck: DeckOverview;
+  onEdit?: () => void;
+  onDelete?: () => void;
 };
 
-export function DeckCard({ deck }: DeckCardProps) {
+export function DeckCard({ deck, onEdit, onDelete }: DeckCardProps) {
   const studyHref = `/materias/${deck.slug}/estudiar`;
-  const editHref = `/materias/${deck.slug}/editar`;
+  const editCardsHref = `/materias/${deck.slug}/editar`;
 
   return (
     <Card className="flex h-full flex-col p-5">
@@ -42,21 +45,45 @@ export function DeckCard({ deck }: DeckCardProps) {
         <ProgressBar value={deck.masteryPercent} />
       </div>
 
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-5 flex flex-col gap-2">
         <ButtonLink
           href={studyHref}
           variant="primary"
-          className="min-h-11 w-full flex-1 sm:w-auto"
+          className="min-h-11 w-full"
         >
           Estudiar
         </ButtonLink>
         <ButtonLink
-          href={editHref}
+          href={editCardsHref}
           variant="secondary"
-          className="min-h-11 w-full flex-1 sm:w-auto"
+          className="min-h-11 w-full"
         >
-          Editar deck
+          Editar cards
         </ButtonLink>
+        {onEdit || onDelete ? (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {onEdit ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-11 w-full flex-1 sm:w-auto"
+                onClick={onEdit}
+              >
+                Editar deck
+              </Button>
+            ) : null}
+            {onDelete ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 w-full flex-1 text-red-700 hover:bg-red-50 sm:w-auto"
+                onClick={onDelete}
+              >
+                Eliminar deck
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </Card>
   );

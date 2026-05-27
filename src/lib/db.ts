@@ -32,3 +32,27 @@ export async function query<T = unknown>(
   const result = await pool.query(text, params);
   return result.rows as T[];
 }
+
+export async function withTransaction<T>(
+  fn: (queryInTx: typeof query) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const queryInTx = async <R = unknown>(text: string, params?: unknown[]) => {
+      const result = await client.query(text, params);
+      return result.rows as R[];
+    };
+
+    const result = await fn(queryInTx);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}

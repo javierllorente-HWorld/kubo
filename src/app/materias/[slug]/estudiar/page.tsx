@@ -56,6 +56,8 @@ export default async function EstudiarDeckPage({ params }: PageProps) {
                 mode="deck"
                 backHref="/materias"
                 backLabel="Volver a materias"
+                usingMockFallback={usingMockFallback}
+                deckSlug={slug}
               />
             </MockAuditSection>
           ) : (
