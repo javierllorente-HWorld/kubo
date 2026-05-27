@@ -8,14 +8,19 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, InputLabel } from "@/components/ui/Input";
 import type { DeckOverview } from "@/lib/db-queries";
+import { MockAuditSection } from "@/components/dev/MockAuditLabel";
 import { deckIconOptions } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
 
 type MateriasContentProps = {
   decks: DeckOverview[];
+  usingMockFallback?: boolean;
 };
 
-export function MateriasContent({ decks }: MateriasContentProps) {
+export function MateriasContent({
+  decks,
+  usingMockFallback = false,
+}: MateriasContentProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState<(typeof deckIconOptions)[number]>(
     deckIconOptions[0],
@@ -37,8 +42,9 @@ export function MateriasContent({ decks }: MateriasContentProps) {
             description="Administrá tus decks y empezá a estudiar cuando quieras."
           />
 
-          <section>
-            {decks.length > 0 ? (
+          <MockAuditSection enabled={usingMockFallback}>
+            <section>
+              {decks.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {decks.map((deck) => (
                   <DeckCard key={deck.slug} deck={deck} />
@@ -71,8 +77,9 @@ export function MateriasContent({ decks }: MateriasContentProps) {
                   </Button>
                 }
               />
-            )}
-          </section>
+              )}
+            </section>
+          </MockAuditSection>
         </div>
       </main>
 

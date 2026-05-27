@@ -6,7 +6,15 @@ import { BackLink } from "@/components/BackLink";
 import { StudySession } from "@/components/StudySession";
 import { EmptyState } from "@/components/EmptyState";
 import { ButtonLink } from "@/components/ButtonLink";
-import { getDeckBySlug, getDeckSessionCards } from "@/lib/db-queries";
+import {
+  getDeckBySlug,
+  getDeckSessionCards,
+} from "@/lib/db-queries";
+import {
+  getMockDeckBySlug,
+  getMockDeckSessionCards,
+} from "@/lib/db-fallback";
+import { MockAuditSection } from "@/components/dev/MockAuditLabel";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -14,27 +22,44 @@ type PageProps = {
 
 export default async function EstudiarDeckPage({ params }: PageProps) {
   const { slug } = await params;
-  const deck = await getDeckBySlug(slug);
+  let deck;
+  let sessionCards;
+  let usingMockFallback = false;
 
-  if (!deck) {
-    notFound();
+  try {
+    deck = await getDeckBySlug(slug);
+    if (!deck) {
+      notFound();
+    }
+    sessionCards = await getDeckSessionCards(slug);
+  } catch (error) {
+    console.error(
+      `[materias/${slug}/estudiar] DB unavailable, using mock data:`,
+      error,
+    );
+    usingMockFallback = true;
+    deck = getMockDeckBySlug(slug);
+    if (!deck) {
+      notFound();
+    }
+    sessionCards = getMockDeckSessionCards(slug);
   }
-
-  const sessionCards = await getDeckSessionCards(slug);
 
   return (
     <AppShell compactHeader>
       <main className="flex-1 px-4 pb-4 pt-2.5 sm:px-5 sm:pb-5 sm:pt-3 lg:px-6 lg:pb-6 lg:pt-3.5">
         <div className="mx-auto max-w-3xl">
           {sessionCards.length > 0 ? (
-            <StudySession
-              cards={sessionCards}
-              mode="deck"
-              backHref="/materias"
-              backLabel="Volver a materias"
-            />
+            <MockAuditSection enabled={usingMockFallback}>
+              <StudySession
+                cards={sessionCards}
+                mode="deck"
+                backHref="/materias"
+                backLabel="Volver a materias"
+              />
+            </MockAuditSection>
           ) : (
-            <>
+            <MockAuditSection enabled={usingMockFallback}>
               <BackLink href="/materias">Volver a materias</BackLink>
               <EmptyState
                 className="mt-6"
@@ -58,7 +83,7 @@ export default async function EstudiarDeckPage({ params }: PageProps) {
                   )
                 }
               />
-            </>
+            </MockAuditSection>
           )}
         </div>
       </main>

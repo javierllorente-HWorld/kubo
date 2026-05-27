@@ -1,10 +1,20 @@
 export const dynamic = "force-dynamic";
 
 import { getDecksOverview } from "@/lib/db-queries";
+import { getMockDecksOverview } from "@/lib/db-fallback";
 import { MateriasContent } from "./MateriasContent";
 
 export default async function MateriasPage() {
-  const decks = await getDecksOverview();
+  let decks;
+  let usingMockFallback = false;
 
-  return <MateriasContent decks={decks} />;
+  try {
+    decks = await getDecksOverview();
+  } catch (error) {
+    console.error("[materias] DB unavailable, using mock data:", error);
+    usingMockFallback = true;
+    decks = getMockDecksOverview();
+  }
+
+  return <MateriasContent decks={decks} usingMockFallback={usingMockFallback} />;
 }
