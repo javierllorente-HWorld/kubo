@@ -133,6 +133,28 @@ export const recentActivity = [
 
 export const deckIconOptions = ["🧠", "👥", "📚", "🧪", "📝", "🎓"] as const;
 
+export type Subject = {
+  id: string;
+  name: string;
+  emoji: string;
+  deckCount: number;
+};
+
+export const subjects: Subject[] = [
+  {
+    id: "mock-subject-cognitiva",
+    name: "Psicología Cognitiva",
+    emoji: "🧠",
+    deckCount: 1,
+  },
+  {
+    id: "mock-subject-social",
+    name: "Psicología Social",
+    emoji: "👥",
+    deckCount: 1,
+  },
+];
+
 export const studyPreferences = [
   { label: "Objetivo diario", value: `${dailyGoal} cards` },
   { label: "Recordatorios", value: "Activados", highlight: true },

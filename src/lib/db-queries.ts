@@ -100,6 +100,13 @@ export type StudySessionCard = StudyFlashcard & {
   deckEmoji: string;
 };
 
+export type SubjectOverview = {
+  id: string;
+  name: string;
+  emoji: string;
+  deckCount: number;
+};
+
 export type SubjectWithDecks = {
   id: string;
   name: string;
@@ -257,6 +264,112 @@ export async function getDeckBySlug(slug: string): Promise<DeckOverview | null> 
   const rows = await fetchDeckStatsRows(slug);
   const row = rows[0];
   return row ? mapDeckOverview(row) : null;
+}
+
+type SubjectListRow = {
+  id: string;
+  name: string;
+  emoji: string | null;
+  deck_count: number;
+};
+
+function mapSubjectOverview(row: SubjectListRow): SubjectOverview {
+  return {
+    id: row.id,
+    name: row.name,
+    emoji: row.emoji ?? "📚",
+    deckCount: Number(row.deck_count),
+  };
+}
+
+export async function getSubjects(): Promise<SubjectOverview[]> {
+  const rows = await query<SubjectListRow>(
+    `SELECT s.id,
+            s.name,
+            s.emoji,
+            COUNT(d.id) FILTER (WHERE d.deleted_at IS NULL)::int AS deck_count
+     FROM subjects s
+     LEFT JOIN decks d ON d.subject_id = s.id
+     WHERE s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+     GROUP BY s.id, s.name, s.emoji
+     ORDER BY s.name ASC`,
+  );
+
+  return rows.map(mapSubjectOverview);
+}
+
+export async function createSubject(
+  name: string,
+  emoji?: string | null,
+): Promise<SubjectOverview> {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    throw new Error("El nombre de la materia es obligatorio");
+  }
+
+  const rows = await query<SubjectListRow>(
+    `INSERT INTO subjects (user_id, name, emoji)
+     VALUES (${firstUserIdSubquery}, $1, $2)
+     RETURNING id, name, emoji, 0::int AS deck_count`,
+    [trimmedName, emoji ?? null],
+  );
+
+  const row = rows[0];
+  if (!row) {
+    throw new Error("No se pudo crear la materia");
+  }
+
+  return mapSubjectOverview(row);
+}
+
+export async function updateSubject(
+  subjectId: string,
+  name: string,
+  emoji?: string | null,
+): Promise<SubjectOverview | null> {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    throw new Error("El nombre de la materia es obligatorio");
+  }
+
+  const rows = await query<SubjectListRow>(
+    `UPDATE subjects
+     SET name = $2,
+         emoji = $3,
+         updated_at = NOW()
+     WHERE id = $1
+       AND deleted_at IS NULL
+       AND user_id = ${firstUserIdSubquery}
+     RETURNING id,
+               name,
+               emoji,
+               (
+                 SELECT COUNT(*)::int
+                 FROM decks d
+                 WHERE d.subject_id = subjects.id
+                   AND d.deleted_at IS NULL
+               ) AS deck_count`,
+    [subjectId, trimmedName, emoji ?? null],
+  );
+
+  const row = rows[0];
+  return row ? mapSubjectOverview(row) : null;
+}
+
+export async function deleteSubject(subjectId: string): Promise<boolean> {
+  const rows = await query<{ id: string }>(
+    `UPDATE subjects
+     SET deleted_at = NOW(),
+         updated_at = NOW()
+     WHERE id = $1
+       AND deleted_at IS NULL
+       AND user_id = ${firstUserIdSubquery}
+     RETURNING id`,
+    [subjectId],
+  );
+
+  return rows.length > 0;
 }
 
 export async function getSubjectsWithDecks(): Promise<SubjectWithDecks[]> {

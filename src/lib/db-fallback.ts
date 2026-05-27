@@ -2,6 +2,7 @@ import type {
   DashboardData,
   DeckOverview,
   StudySessionCard,
+  SubjectOverview,
   UserProfile,
   UserSettings,
   UserStats,
@@ -14,6 +15,7 @@ import {
   getDeckSessionCards,
   getSessionCards,
   progressStats,
+  subjects,
   userProfile,
 } from "@/lib/mock-data";
 
@@ -48,6 +50,10 @@ export function getMockUserStats(): UserStats {
 
 export function getMockDecksOverview(): DeckOverview[] {
   return decks.map((deck) => ({ ...deck }));
+}
+
+export function getMockSubjects(): SubjectOverview[] {
+  return subjects.map((subject) => ({ ...subject }));
 }
 
 export function getMockDashboardData(): DashboardData {
