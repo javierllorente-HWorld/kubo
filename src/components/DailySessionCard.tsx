@@ -1,10 +1,14 @@
 import { DailyGoalRing } from "@/components/DailyGoalRing";
 import { ButtonLink } from "@/components/ButtonLink";
 import { Card } from "@/components/ui/Card";
-import { dailySession } from "@/lib/mock-data";
+import type { DashboardDailySession } from "@/lib/db-queries";
 import { cn } from "@/lib/cn";
 
-export function DailySessionCard() {
+type DailySessionCardProps = {
+  dailySession: DashboardDailySession;
+};
+
+export function DailySessionCard({ dailySession }: DailySessionCardProps) {
   const hasPending = dailySession.pendingTotal > 0;
 
   if (!hasPending) {
@@ -19,6 +23,15 @@ export function DailySessionCard() {
         <p className="mt-2 text-sm leading-relaxed text-cool-gray">
           No tenés cards pendientes. Volvé mañana o agregá nuevas cards a tus decks.
         </p>
+        <p className="mt-1 text-xs font-medium text-white/70">
+          {dailySession.completedCards}/{dailySession.dailyGoal} cards estudiadas hoy
+        </p>
+        <div className="mt-5 px-2">
+          <DailyGoalRing
+            completed={dailySession.completedCards}
+            goal={dailySession.dailyGoal}
+          />
+        </div>
         <ButtonLink
           href="/materias"
           variant="secondary"
@@ -44,7 +57,7 @@ export function DailySessionCard() {
         Tenés {dailySession.pendingTotal} cards pendientes para repasar.
       </p>
       <p className="mt-1 text-xs font-medium text-white/70">
-        Objetivo diario: {dailySession.dailyGoal} cards
+        {dailySession.completedCards}/{dailySession.dailyGoal} cards estudiadas hoy
       </p>
       <ul className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
         {dailySession.breakdown.map((item) => (
@@ -68,10 +81,7 @@ export function DailySessionCard() {
         />
       </div>
 
-      <ButtonLink
-        href="/estudiar/sesion"
-        className="mt-5 w-full rounded-2xl"
-      >
+      <ButtonLink href="/estudiar/sesion" className="mt-5 w-full rounded-2xl">
         Estudiar sesión
       </ButtonLink>
     </Card>

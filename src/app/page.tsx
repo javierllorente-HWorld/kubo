@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, InputLabel } from "@/components/ui/Input";
@@ -78,6 +79,7 @@ function EyeIcon({ className }: { className?: string }) {
 
 export default function Home() {
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -153,16 +155,20 @@ export default function Home() {
                   <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-cool-gray">
                     <LockIcon />
                   </span>
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-cool-gray/60"
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute right-3.5 top-1/2 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-cool-gray/60 transition-colors hover:text-cool-gray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/40 focus-visible:ring-offset-2"
+                    aria-label={
+                      showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                    }
                   >
                     <EyeIcon />
-                  </span>
+                  </button>
                   <Input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     defaultValue={DEMO_PASSWORD}
                     placeholder="••••••••"

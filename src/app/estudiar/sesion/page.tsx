@@ -1,14 +1,31 @@
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/AppShell";
 import { BackLink } from "@/components/BackLink";
 import { StudySession } from "@/components/StudySession";
 import { EmptyState } from "@/components/EmptyState";
 import { ButtonLink } from "@/components/ButtonLink";
-import { dailySession, getSessionCards } from "@/lib/mock-data";
+import { getDueCardsForDailySession } from "@/lib/db-queries";
+import { getMockDueCardsForDailySession } from "@/lib/db-fallback";
+import { MockAuditSection } from "@/components/dev/MockAuditLabel";
 
-export default function SesionDiariaPage() {
-  const sessionCards = getSessionCards();
+export default async function SesionDiariaPage() {
+  let sessionCards;
+  let usingMockFallback = false;
 
-  if (dailySession.pendingTotal === 0 || sessionCards.length === 0) {
+  try {
+    sessionCards = await getDueCardsForDailySession();
+  } catch (error) {
+    console.error(
+      "[estudiar/sesion] DB unavailable, using mock data:",
+      error,
+    );
+    usingMockFallback = true;
+    sessionCards = getMockDueCardsForDailySession();
+  }
+  const pendingTotal = sessionCards.length;
+
+  if (pendingTotal === 0 || sessionCards.length === 0) {
     return (
       <AppShell compactHeader>
         <main className="flex-1 p-4 sm:p-5 lg:p-6">
@@ -32,12 +49,14 @@ export default function SesionDiariaPage() {
     <AppShell compactHeader>
       <main className="flex-1 px-4 pb-4 pt-2.5 sm:px-5 sm:pb-5 sm:pt-3 lg:px-6 lg:pb-6 lg:pt-3.5">
         <div className="mx-auto max-w-3xl">
-          <StudySession
-            cards={sessionCards}
-            mode="daily"
-            backHref="/dashboard"
-            backLabel="Volver al inicio"
-          />
+          <MockAuditSection enabled={usingMockFallback}>
+            <StudySession
+              cards={sessionCards}
+              mode="daily"
+              backHref="/dashboard"
+              backLabel="Volver al inicio"
+            />
+          </MockAuditSection>
         </div>
       </main>
     </AppShell>

@@ -7,15 +7,34 @@ import {
   ActivityIconBadge,
   BellIcon,
 } from "@/components/icons/NotificationIcons";
+import { MockAuditLabel } from "@/components/dev/MockAuditLabel";
 import { recentActivity, userProfile } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
+
+type HeaderProfile = {
+  name: string;
+  initials: string;
+};
 
 type AppHeaderProps = {
   compact?: boolean;
   className?: string;
+  profile?: HeaderProfile;
+  showAvatarMockLabel?: boolean;
+  showNotificationsMockLabel?: boolean;
 };
 
-export function AppHeader({ compact = false, className }: AppHeaderProps) {
+export function AppHeader({
+  compact = false,
+  className,
+  profile: profileOverride,
+  showAvatarMockLabel = true,
+  showNotificationsMockLabel = true,
+}: AppHeaderProps) {
+  const displayProfile = profileOverride ?? {
+    name: userProfile.name,
+    initials: userProfile.initials,
+  };
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -83,9 +102,12 @@ export function AppHeader({ compact = false, className }: AppHeaderProps) {
               role="region"
               aria-label="Panel de notificaciones"
             >
-              <h2 className="font-display text-base font-semibold text-midnight-ink">
-                Actividad reciente
-              </h2>
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="font-display text-base font-semibold text-midnight-ink">
+                  Actividad reciente
+                </h2>
+                {showNotificationsMockLabel ? <MockAuditLabel /> : null}
+              </div>
               <p className="mt-0.5 text-xs text-cool-gray">
                 Tus últimos avances
               </p>
@@ -113,16 +135,21 @@ export function AppHeader({ compact = false, className }: AppHeaderProps) {
             </div>
           )}
         </div>
-        <Link
-          href="/perfil"
-          className={cn(
-            "flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/35 focus-visible:ring-offset-2",
-            compact ? "h-9 w-9 min-h-9 min-w-9" : "h-10 w-10",
-          )}
-          aria-label={`Perfil de ${userProfile.name}`}
-        >
-          {userProfile.initials}
-        </Link>
+        <div className="relative shrink-0">
+          <Link
+            href="/perfil"
+            className={cn(
+              "flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-electric-lime font-display text-xs font-semibold text-midnight-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/35 focus-visible:ring-offset-2",
+              compact ? "h-9 w-9 min-h-9 min-w-9" : "h-10 w-10",
+            )}
+            aria-label={`Perfil de ${displayProfile.name}`}
+          >
+            {displayProfile.initials}
+          </Link>
+          {showAvatarMockLabel ? (
+            <MockAuditLabel className="absolute -right-0.5 -top-1" />
+          ) : null}
+        </div>
       </div>
     </header>
   );

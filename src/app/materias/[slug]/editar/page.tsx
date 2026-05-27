@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { getDeckBySlug, getDeckCards } from "@/lib/mock-data";
+import { MockAuditSection } from "@/components/dev/MockAuditLabel";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -27,20 +28,21 @@ export default async function EditarDeckPage({ params }: PageProps) {
         <div className="mx-auto max-w-3xl">
           <BackLink href="/materias">Volver a materias</BackLink>
 
-          <PageHeader
-            className="mt-4"
-            eyebrow="Editar deck"
-            title={deck.name}
-            description={`${deck.cardsLearned}/${deck.totalCards} cards · ${deck.masteryPercent}% dominado`}
-            action={
-              <Button type="button" className="shrink-0 sm:min-w-[9.5rem]">
-                Crear card
-              </Button>
-            }
-          />
+          <MockAuditSection enabled>
+            <PageHeader
+              className="mt-4"
+              eyebrow="Editar deck"
+              title={deck.name}
+              description={`${deck.cardsLearned}/${deck.totalCards} cards · ${deck.masteryPercent}% dominado`}
+              action={
+                <Button type="button" className="shrink-0 sm:min-w-[9.5rem]">
+                  Crear card
+                </Button>
+              }
+            />
 
-          <section className="mt-2">
-            {cards.length > 0 ? (
+            <section className="mt-2">
+              {cards.length > 0 ? (
               <ul className="space-y-3">
                 {cards.map((card, index) => (
                   <li key={card.id}>
@@ -85,8 +87,9 @@ export default async function EditarDeckPage({ params }: PageProps) {
                 description="Agregá preguntas y respuestas para empezar a estudiar."
                 action={<Button type="button">Crear card</Button>}
               />
-            )}
-          </section>
+              )}
+            </section>
+          </MockAuditSection>
         </div>
       </main>
     </AppShell>
