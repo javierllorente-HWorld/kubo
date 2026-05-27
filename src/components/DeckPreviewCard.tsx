@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MockAuditLabel } from "@/components/dev/MockAuditLabel";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { Deck } from "@/lib/mock-data";
@@ -8,11 +9,20 @@ type DeckPreviewCardProps = {
   deck: Deck;
   href?: string;
   className?: string;
+  showMockLabel?: boolean;
 };
 
-export function DeckPreviewCard({ deck, href, className }: DeckPreviewCardProps) {
+export function DeckPreviewCard({
+  deck,
+  href,
+  className,
+  showMockLabel = false,
+}: DeckPreviewCardProps) {
   const card = (
-    <Card className={cn("p-4 transition-shadow", href && "hover:shadow-card-lg", className)}>
+    <Card className={cn("relative p-4 transition-shadow", href && "hover:shadow-card-lg", className)}>
+      {showMockLabel ? (
+        <MockAuditLabel className="absolute right-3 top-3" />
+      ) : null}
       <div className="flex items-center gap-3">
         <span
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-soft-cloud text-2xl"

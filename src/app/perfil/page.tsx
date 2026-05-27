@@ -3,9 +3,9 @@ export const dynamic = "force-dynamic";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/StatCard";
+import { AccountSection } from "./AccountSection";
 import {
   getUserProfile,
   getUserSettings,
@@ -110,13 +110,6 @@ export default async function PerfilPage() {
     },
   ];
 
-  const accountFields = [
-    { label: "Nombre", value: name },
-    { label: "Email", value: email },
-    { label: "Universidad", value: university },
-    { label: "Carrera", value: career },
-  ];
-
   return (
     <AppShell>
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
@@ -206,34 +199,14 @@ export default async function PerfilPage() {
               </Card>
             </div>
 
-            <Card className="p-4 sm:p-5 lg:sticky lg:top-4">
-              <div>
-                <h2 className="font-display text-base font-semibold text-midnight-ink">
-                  Cuenta
-                </h2>
-                <p className="mt-0.5 text-xs text-cool-gray">
-                  Información personal y académica
-                </p>
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {accountFields.map((field) => (
-                  <StatCard
-                    key={field.label}
-                    label={field.label}
-                    value={field.value}
-                  />
-                ))}
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full border-midnight-ink/15 font-display shadow-sm hover:border-midnight-ink/25 hover:bg-white sm:w-auto sm:min-w-[10rem]"
-                >
-                  Editar perfil
-                </Button>
-              </div>
-            </Card>
+            <AccountSection
+              initialAccount={{
+                name,
+                email,
+                university,
+                career,
+              }}
+            />
             </div>
           </MockAuditSection>
         </div>
