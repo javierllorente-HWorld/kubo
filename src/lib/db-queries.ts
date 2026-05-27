@@ -214,9 +214,28 @@ function mapDeckOverview(row: DeckStatsRow): DeckOverview {
   };
 }
 
-async function fetchDeckStatsRows(slug?: string): Promise<DeckStatsRow[]> {
-  const nameFilter = slug ? "AND d.name = $1" : "";
-  const params = slug ? [slugToDeckName(slug)] : [];
+type FetchDeckStatsOptions = {
+  slug?: string;
+  subjectId?: string;
+};
+
+async function fetchDeckStatsRows(
+  options: FetchDeckStatsOptions = {},
+): Promise<DeckStatsRow[]> {
+  const filters: string[] = [];
+  const params: unknown[] = [];
+
+  if (options.slug) {
+    params.push(slugToDeckName(options.slug));
+    filters.push(`AND d.name = $${params.length}`);
+  }
+
+  if (options.subjectId) {
+    params.push(options.subjectId);
+    filters.push(`AND s.id = $${params.length}`);
+  }
+
+  const extraFilters = filters.length > 0 ? filters.join(" ") : "";
 
   return query<DeckStatsRow>(
     `SELECT d.id,
@@ -236,7 +255,7 @@ async function fetchDeckStatsRows(slug?: string): Promise<DeckStatsRow[]> {
      WHERE d.deleted_at IS NULL
        AND s.deleted_at IS NULL
        AND s.user_id = ${firstUserIdSubquery}
-       ${nameFilter}
+       ${extraFilters}
      GROUP BY d.id, d.subject_id, d.name, s.emoji
      ORDER BY d.name ASC`,
     params,
@@ -261,9 +280,37 @@ export async function getDecksOverview(): Promise<DeckOverview[]> {
 }
 
 export async function getDeckBySlug(slug: string): Promise<DeckOverview | null> {
-  const rows = await fetchDeckStatsRows(slug);
+  const rows = await fetchDeckStatsRows({ slug });
   const row = rows[0];
   return row ? mapDeckOverview(row) : null;
+}
+
+export async function getSubjectById(
+  subjectId: string,
+): Promise<SubjectOverview | null> {
+  const rows = await query<SubjectListRow>(
+    `SELECT s.id,
+            s.name,
+            s.emoji,
+            COUNT(d.id) FILTER (WHERE d.deleted_at IS NULL)::int AS deck_count
+     FROM subjects s
+     LEFT JOIN decks d ON d.subject_id = s.id
+     WHERE s.id = $1
+       AND s.deleted_at IS NULL
+       AND s.user_id = ${firstUserIdSubquery}
+     GROUP BY s.id, s.name, s.emoji`,
+    [subjectId],
+  );
+
+  const row = rows[0];
+  return row ? mapSubjectOverview(row) : null;
+}
+
+export async function getDecksBySubjectId(
+  subjectId: string,
+): Promise<DeckOverview[]> {
+  const rows = await fetchDeckStatsRows({ subjectId });
+  return rows.map(mapDeckOverview);
 }
 
 type SubjectListRow = {

@@ -155,6 +155,11 @@ export const subjects: Subject[] = [
   },
 ];
 
+export const decksBySubjectId: Record<string, Deck[]> = {
+  "mock-subject-cognitiva": [decks[0]],
+  "mock-subject-social": [decks[1]],
+};
+
 export const studyPreferences = [
   { label: "Objetivo diario", value: `${dailyGoal} cards` },
   { label: "Recordatorios", value: "Activados", highlight: true },

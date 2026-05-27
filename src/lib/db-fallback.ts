@@ -15,6 +15,7 @@ import {
   getDeckSessionCards,
   getSessionCards,
   progressStats,
+  decksBySubjectId,
   subjects,
   userProfile,
 } from "@/lib/mock-data";
@@ -54,6 +55,18 @@ export function getMockDecksOverview(): DeckOverview[] {
 
 export function getMockSubjects(): SubjectOverview[] {
   return subjects.map((subject) => ({ ...subject }));
+}
+
+export function getMockSubjectById(
+  subjectId: string,
+): SubjectOverview | null {
+  const subject = subjects.find((item) => item.id === subjectId);
+  return subject ? { ...subject } : null;
+}
+
+export function getMockDecksBySubjectId(subjectId: string): DeckOverview[] {
+  const subjectDecks = decksBySubjectId[subjectId] ?? [];
+  return subjectDecks.map((deck) => ({ ...deck }));
 }
 
 export function getMockDashboardData(): DashboardData {

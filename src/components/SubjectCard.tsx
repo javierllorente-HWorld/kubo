@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ButtonLink";
 import type { SubjectOverview } from "@/lib/db-queries";
 
 type SubjectCardProps = {
@@ -31,23 +32,32 @@ export function SubjectCard({ subject, onEdit, onDelete }: SubjectCardProps) {
         </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-        <Button
-          type="button"
-          variant="secondary"
-          className="min-h-11 w-full flex-1 sm:w-auto"
-          onClick={onEdit}
+      <div className="mt-5 flex flex-col gap-2">
+        <ButtonLink
+          href={`/materias/${subject.id}`}
+          variant="primary"
+          className="min-h-11 w-full"
         >
-          Editar
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          className="min-h-11 w-full flex-1 text-red-700 hover:bg-red-50 sm:w-auto"
-          onClick={onDelete}
-        >
-          Eliminar
-        </Button>
+          Ver decks
+        </ButtonLink>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            type="button"
+            variant="secondary"
+            className="min-h-11 w-full flex-1 sm:w-auto"
+            onClick={onEdit}
+          >
+            Editar
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-11 w-full flex-1 text-red-700 hover:bg-red-50 sm:w-auto"
+            onClick={onDelete}
+          >
+            Eliminar
+          </Button>
+        </div>
       </div>
     </Card>
   );
