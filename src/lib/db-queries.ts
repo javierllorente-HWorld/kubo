@@ -4,7 +4,8 @@ import {
   mapEventTypeToIcon,
   type ActivityEventItem,
 } from "@/lib/activity";
-import { DEMO_USER_ID, demoUserIdSql } from "@/lib/demo-user";
+import { getCurrentUserId } from "@/lib/auth-session";
+import { DEMO_USER_ID } from "@/lib/demo-user";
 import { query, withTransaction } from "@/lib/db";
 import {
   getNextReviewAtSql,
@@ -42,6 +43,7 @@ type QueryInTx = <T = unknown>(
 
 async function insertActivityEventWithQuery(
   runQuery: QueryInTx,
+  userId: string,
   data: CreateActivityEventInput,
 ): Promise<void> {
   const rows = await runQuery<{ id: string }>(
@@ -57,7 +59,6 @@ async function insertActivityEventWithQuery(
        metadata
      )
      VALUES (
-       ${demoUserIdSql},
        $1,
        $2,
        $3,
@@ -65,10 +66,12 @@ async function insertActivityEventWithQuery(
        $5,
        $6,
        $7,
-       $8::jsonb
+       $8,
+       $9::jsonb
      )
      RETURNING id`,
     [
+      userId,
       data.eventType,
       data.title,
       data.description ?? null,
@@ -88,10 +91,12 @@ async function insertActivityEventWithQuery(
 export async function createActivityEvent(
   data: CreateActivityEventInput,
 ): Promise<void> {
-  await insertActivityEventWithQuery(query, data);
+  const userId = await getCurrentUserId();
+  await insertActivityEventWithQuery(query, userId, data);
 }
 
 export async function getRecentActivity(): Promise<ActivityEventItem[]> {
+  const userId = await getCurrentUserId();
   const rows = await query<ActivityEventRow>(
     `SELECT id,
             event_type,
@@ -100,9 +105,10 @@ export async function getRecentActivity(): Promise<ActivityEventItem[]> {
             xp_earned,
             created_at
      FROM activity_events
-     WHERE user_id = ${demoUserIdSql}
+     WHERE user_id = $1
      ORDER BY created_at DESC
      LIMIT 5`,
+    [userId],
   );
 
   return rows.map((row) => ({
@@ -185,7 +191,13 @@ export async function getDemoUser(): Promise<DemoUser | null> {
 }
 
 export async function getUserProfile(): Promise<UserProfile | null> {
-  return getDemoUser();
+  const userId = await getCurrentUserId();
+  const rows = await query<UserProfile>(
+    "SELECT id, name, email, career, university, total_xp FROM users WHERE id = $1",
+    [userId],
+  );
+
+  return rows[0] ?? null;
 }
 
 export type UserProfileUpdate = {
@@ -199,6 +211,11 @@ export async function updateUserProfile(
   userId: string,
   data: UserProfileUpdate,
 ): Promise<UserProfile> {
+  const currentUserId = await getCurrentUserId();
+  if (userId !== currentUserId) {
+    throw new Error("No autorizado para editar este perfil");
+  }
+
   const name = data.name.trim();
   const email = data.email.trim();
   const university = data.university.trim();
@@ -232,17 +249,20 @@ export async function updateUserProfile(
 }
 
 export async function getUserSettings(): Promise<UserSettings | null> {
+  const userId = await getCurrentUserId();
   const rows = await query<UserSettings>(
     `SELECT daily_goal_cards, study_mode
      FROM user_settings
-     WHERE user_id = ${demoUserIdSql}
+     WHERE user_id = $1
      LIMIT 1`,
+    [userId],
   );
 
   return rows[0] ?? null;
 }
 
 export async function getUserStats(): Promise<UserStats | null> {
+  const userId = await getCurrentUserId();
   const rows = await query<UserStats>(
     `SELECT current_streak_days,
             best_streak_days,
@@ -251,8 +271,9 @@ export async function getUserStats(): Promise<UserStats | null> {
             strongest_deck_id,
             weakest_deck_id
      FROM user_stats
-     WHERE user_id = ${demoUserIdSql}
+     WHERE user_id = $1
      LIMIT 1`,
+    [userId],
   );
 
   return rows[0] ?? null;
@@ -415,8 +436,9 @@ type FetchDeckStatsOptions = {
 async function fetchDeckStatsRows(
   options: FetchDeckStatsOptions = {},
 ): Promise<DeckStatsRow[]> {
+  const userId = await getCurrentUserId();
   const filters: string[] = [];
-  const params: unknown[] = [];
+  const params: unknown[] = [userId];
 
   if (options.deckId) {
     params.push(options.deckId);
@@ -453,7 +475,7 @@ async function fetchDeckStatsRows(
      LEFT JOIN cards c ON c.deck_id = d.id
      WHERE d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $1
        ${extraFilters}
      GROUP BY d.id, d.subject_id, d.name, d.description, s.emoji
      ORDER BY d.name ASC`,
@@ -462,12 +484,14 @@ async function fetchDeckStatsRows(
 }
 
 async function getTodayCompletedCards(): Promise<number> {
+  const userId = await getCurrentUserId();
   const rows = await query<DailyProgressRow>(
     `SELECT cards_reviewed
      FROM daily_progress
-     WHERE user_id = ${demoUserIdSql}
+     WHERE user_id = $1
        AND date = CURRENT_DATE
      LIMIT 1`,
+    [userId],
   );
 
   return rows[0]?.cards_reviewed ?? 0;
@@ -528,6 +552,7 @@ export async function getDeckEditContextById(
 export async function getSubjectById(
   subjectId: string,
 ): Promise<SubjectOverview | null> {
+  const userId = await getCurrentUserId();
   const rows = await query<SubjectListRow>(
     `SELECT s.id,
             s.name,
@@ -537,9 +562,9 @@ export async function getSubjectById(
      LEFT JOIN decks d ON d.subject_id = s.id
      WHERE s.id = $1
        AND s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $2
      GROUP BY s.id, s.name, s.emoji`,
-    [subjectId],
+    [subjectId, userId],
   );
 
   const row = rows[0];
@@ -564,6 +589,7 @@ export async function createDeck(
   }
 
   const trimmedDescription = description?.trim() || null;
+  const userId = await getCurrentUserId();
 
   const rows = await query<DeckWriteRow>(
     `INSERT INTO decks (subject_id, name, description)
@@ -573,10 +599,10 @@ export async function createDeck(
        FROM subjects s
        WHERE s.id = $1
          AND s.deleted_at IS NULL
-         AND s.user_id = ${demoUserIdSql}
+         AND s.user_id = $4
      )
      RETURNING id, name, description`,
-    [subjectId, trimmedName, trimmedDescription],
+    [subjectId, trimmedName, trimmedDescription, userId],
   );
 
   const row = rows[0];
@@ -614,6 +640,7 @@ export async function updateDeck(
   }
 
   const trimmedDescription = description?.trim() || null;
+  const userId = await getCurrentUserId();
 
   const rows = await query<{ subject_id: string } & DeckWriteRow>(
     `UPDATE decks d
@@ -625,9 +652,9 @@ export async function updateDeck(
        AND d.subject_id = s.id
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $4
      RETURNING d.id, d.name, d.description, d.subject_id`,
-    [deckId, trimmedName, trimmedDescription],
+    [deckId, trimmedName, trimmedDescription, userId],
   );
 
   const row = rows[0];
@@ -640,6 +667,7 @@ export async function updateDeck(
 }
 
 export async function deleteDeck(deckId: string): Promise<boolean> {
+  const userId = await getCurrentUserId();
   const rows = await query<{ id: string }>(
     `UPDATE decks d
      SET deleted_at = NOW(),
@@ -649,9 +677,9 @@ export async function deleteDeck(deckId: string): Promise<boolean> {
        AND d.subject_id = s.id
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $2
      RETURNING d.id`,
-    [deckId],
+    [deckId, userId],
   );
 
   return rows.length > 0;
@@ -674,6 +702,7 @@ function mapSubjectOverview(row: SubjectListRow): SubjectOverview {
 }
 
 export async function getSubjects(): Promise<SubjectOverview[]> {
+  const userId = await getCurrentUserId();
   const rows = await query<SubjectListRow>(
     `SELECT s.id,
             s.name,
@@ -682,9 +711,10 @@ export async function getSubjects(): Promise<SubjectOverview[]> {
      FROM subjects s
      LEFT JOIN decks d ON d.subject_id = s.id
      WHERE s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $1
      GROUP BY s.id, s.name, s.emoji
      ORDER BY s.name ASC`,
+    [userId],
   );
 
   return rows.map(mapSubjectOverview);
@@ -699,11 +729,12 @@ export async function createSubject(
     throw new Error("El nombre de la materia es obligatorio");
   }
 
+  const userId = await getCurrentUserId();
   const rows = await query<SubjectListRow>(
     `INSERT INTO subjects (user_id, name, emoji)
-     VALUES (${demoUserIdSql}, $1, $2)
+     VALUES ($1, $2, $3)
      RETURNING id, name, emoji, 0::int AS deck_count`,
-    [trimmedName, emoji ?? null],
+    [userId, trimmedName, emoji ?? null],
   );
 
   const row = rows[0];
@@ -724,6 +755,7 @@ export async function updateSubject(
     throw new Error("El nombre de la materia es obligatorio");
   }
 
+  const userId = await getCurrentUserId();
   const rows = await query<SubjectListRow>(
     `UPDATE subjects
      SET name = $2,
@@ -731,7 +763,7 @@ export async function updateSubject(
          updated_at = NOW()
      WHERE id = $1
        AND deleted_at IS NULL
-       AND user_id = ${demoUserIdSql}
+       AND user_id = $4
      RETURNING id,
                name,
                emoji,
@@ -741,7 +773,7 @@ export async function updateSubject(
                  WHERE d.subject_id = subjects.id
                    AND d.deleted_at IS NULL
                ) AS deck_count`,
-    [subjectId, trimmedName, emoji ?? null],
+    [subjectId, trimmedName, emoji ?? null, userId],
   );
 
   const row = rows[0];
@@ -749,27 +781,30 @@ export async function updateSubject(
 }
 
 export async function deleteSubject(subjectId: string): Promise<boolean> {
+  const userId = await getCurrentUserId();
   const rows = await query<{ id: string }>(
     `UPDATE subjects
      SET deleted_at = NOW(),
          updated_at = NOW()
      WHERE id = $1
        AND deleted_at IS NULL
-       AND user_id = ${demoUserIdSql}
+       AND user_id = $2
      RETURNING id`,
-    [subjectId],
+    [subjectId, userId],
   );
 
   return rows.length > 0;
 }
 
 export async function getSubjectsWithDecks(): Promise<SubjectWithDecks[]> {
+  const userId = await getCurrentUserId();
   const subjects = await query<SubjectRow>(
     `SELECT id, name, slug, emoji
      FROM subjects
      WHERE deleted_at IS NULL
-       AND user_id = ${demoUserIdSql}
+       AND user_id = $1
      ORDER BY name ASC`,
+    [userId],
   );
 
   const deckRows = await fetchDeckStatsRows();
@@ -806,6 +841,7 @@ export async function getCardsForDeck(
 ): Promise<StudyFlashcard[]> {
   const dueOnly = options?.dueOnly ?? false;
   const dueFilter = dueOnly ? "AND c.next_review_at <= NOW()" : "";
+  const userId = await getCurrentUserId();
 
   const rows = await query<CardRow>(
     `SELECT c.id, c.question, c.answer, c.status
@@ -816,10 +852,10 @@ export async function getCardsForDeck(
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $2
        ${dueFilter}
      ORDER BY c.created_at ASC NULLS LAST, c.id ASC`,
-    [slugToDeckName(slug)],
+    [slugToDeckName(slug), userId],
   );
 
   return rows.map(mapStudyFlashcard);
@@ -831,6 +867,7 @@ export async function getCardsForDeckByDeckId(
 ): Promise<StudyFlashcard[]> {
   const dueOnly = options?.dueOnly ?? false;
   const dueFilter = dueOnly ? "AND c.next_review_at <= NOW()" : "";
+  const userId = await getCurrentUserId();
 
   const rows = await query<CardRow>(
     `SELECT c.id, c.question, c.answer, c.status
@@ -841,10 +878,10 @@ export async function getCardsForDeckByDeckId(
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $2
        ${dueFilter}
      ORDER BY c.created_at ASC NULLS LAST, c.id ASC`,
-    [deckId],
+    [deckId, userId],
   );
 
   return rows.map(mapStudyFlashcard);
@@ -866,6 +903,7 @@ export async function createCard(
     throw new Error("La respuesta es obligatoria");
   }
 
+  const userId = await getCurrentUserId();
   const rows = await query<CardRow>(
     `INSERT INTO cards (deck_id, question, answer, status, review_count, next_review_at)
      SELECT $1, $2, $3, 'new', 0, NOW()
@@ -876,10 +914,10 @@ export async function createCard(
        WHERE d.id = $1
          AND d.deleted_at IS NULL
          AND s.deleted_at IS NULL
-         AND s.user_id = ${demoUserIdSql}
+         AND s.user_id = $4
      )
      RETURNING id, question, answer, status`,
-    [deckId, trimmedQuestion, trimmedAnswer],
+    [deckId, trimmedQuestion, trimmedAnswer, userId],
   );
 
   const row = rows[0];
@@ -906,6 +944,7 @@ export async function updateCard(
     throw new Error("La respuesta es obligatoria");
   }
 
+  const userId = await getCurrentUserId();
   const rows = await query<CardRow>(
     `UPDATE cards c
      SET question = $2,
@@ -918,9 +957,9 @@ export async function updateCard(
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $4
      RETURNING c.id, c.question, c.answer, c.status`,
-    [cardId, trimmedQuestion, trimmedAnswer],
+    [cardId, trimmedQuestion, trimmedAnswer, userId],
   );
 
   const row = rows[0];
@@ -928,6 +967,7 @@ export async function updateCard(
 }
 
 export async function deleteCard(cardId: string): Promise<boolean> {
+  const userId = await getCurrentUserId();
   const rows = await query<{ id: string }>(
     `UPDATE cards c
      SET deleted_at = NOW(),
@@ -939,15 +979,16 @@ export async function deleteCard(cardId: string): Promise<boolean> {
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $2
      RETURNING c.id`,
-    [cardId],
+    [cardId, userId],
   );
 
   return rows.length > 0;
 }
 
 export async function getDueCardsForDailySession(): Promise<StudySessionCard[]> {
+  const userId = await getCurrentUserId();
   const rows = await query<DueSessionCardRow>(
     `SELECT c.id,
             c.question,
@@ -962,8 +1003,9 @@ export async function getDueCardsForDailySession(): Promise<StudySessionCard[]> 
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
        AND c.next_review_at <= NOW()
-       AND s.user_id = ${demoUserIdSql}
+       AND s.user_id = $1
      ORDER BY c.next_review_at ASC`,
+    [userId],
   );
 
   return rows.map((row) => ({
@@ -1060,6 +1102,8 @@ export async function reviewCard(
     nextReviewAtSql,
   });
 
+  const userId = await getCurrentUserId();
+
   await withTransaction(async (queryInTx) => {
     const cardContextRows = await queryInTx<{
       deck_id: string;
@@ -1076,8 +1120,8 @@ export async function reviewCard(
          AND c.deleted_at IS NULL
          AND d.deleted_at IS NULL
          AND s.deleted_at IS NULL
-         AND s.user_id = ${demoUserIdSql}`,
-      [cardId],
+         AND s.user_id = $2`,
+      [cardId, userId],
     );
 
     const cardContext = cardContextRows[0];
@@ -1085,7 +1129,7 @@ export async function reviewCard(
     const reviewRows = await queryInTx<{ id: string }>(
       `INSERT INTO card_reviews (card_id, user_id, rating, xp_earned, next_review_at)
        SELECT $1,
-              ${demoUserIdSql},
+              $4,
               $2,
               $3,
               ${nextReviewAtSql}
@@ -1098,10 +1142,10 @@ export async function reviewCard(
            AND c.deleted_at IS NULL
            AND d.deleted_at IS NULL
            AND s.deleted_at IS NULL
-           AND s.user_id = ${demoUserIdSql}
+           AND s.user_id = $4
        )
        RETURNING id`,
-      [cardId, rating, xpEarned],
+      [cardId, rating, xpEarned, userId],
     );
 
     if (!reviewRows[0]) {
@@ -1126,9 +1170,9 @@ export async function reviewCard(
          AND c.deleted_at IS NULL
          AND d.deleted_at IS NULL
          AND s.deleted_at IS NULL
-         AND s.user_id = ${demoUserIdSql}
+         AND s.user_id = $3
        RETURNING c.id`,
-      [cardId, cardStatus],
+      [cardId, cardStatus, userId],
     );
 
     if (!cardRows[0]) {
@@ -1142,9 +1186,9 @@ export async function reviewCard(
     const userRows = await queryInTx<{ id: string }>(
       `UPDATE users
        SET total_xp = total_xp + $1
-       WHERE id = ${demoUserIdSql}
+       WHERE id = $2
        RETURNING id`,
-      [xpEarned],
+      [xpEarned, userId],
     );
 
     if (!userRows[0]) {
@@ -1157,10 +1201,10 @@ export async function reviewCard(
       `UPDATE daily_progress
        SET cards_reviewed = cards_reviewed + 1,
            xp_earned = xp_earned + $1
-       WHERE user_id = ${demoUserIdSql}
+       WHERE user_id = $2
          AND date = CURRENT_DATE
        RETURNING id`,
-      [xpEarned],
+      [xpEarned, userId],
     );
 
     if (progressUpdated[0]) {
@@ -1170,9 +1214,9 @@ export async function reviewCard(
     } else {
       const progressInserted = await queryInTx<{ id: string }>(
         `INSERT INTO daily_progress (user_id, date, cards_reviewed, xp_earned)
-         VALUES (${demoUserIdSql}, CURRENT_DATE, 1, $1)
+         VALUES ($2, CURRENT_DATE, 1, $1)
          RETURNING id`,
-        [xpEarned],
+        [xpEarned, userId],
       );
 
       if (!progressInserted[0]) {
@@ -1184,7 +1228,7 @@ export async function reviewCard(
       });
     }
 
-    await insertActivityEventWithQuery(queryInTx, {
+    await insertActivityEventWithQuery(queryInTx, userId, {
       eventType: "card_reviewed",
       title: "Estudiaste una card",
       description: cardContext?.deck_name ?? null,

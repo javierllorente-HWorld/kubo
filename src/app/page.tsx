@@ -2,16 +2,19 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import {
+  loginAction,
+  registerAction,
+} from "@/app/actions/auth";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, InputLabel } from "@/components/ui/Input";
 
-const DEMO_EMAIL = "demo@kubo.app";
-const DEMO_PASSWORD = "kubo123";
-
 const inputClassName =
   "min-h-[48px] rounded-2xl border-cool-gray/20 bg-white py-2.5 text-sm shadow-sm transition-[border-color,box-shadow] focus:border-electric-lime focus:ring-[3px] focus:ring-electric-lime/30";
+
+type AuthMode = "login" | "register";
 
 function MailIcon({ className }: { className?: string }) {
   return (
@@ -79,11 +82,52 @@ function EyeIcon({ className }: { className?: string }) {
 
 export default function Home() {
   const router = useRouter();
+  const [mode, setMode] = useState<AuthMode>("login");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    router.push("/dashboard");
+    setError(null);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    startTransition(async () => {
+      if (mode === "login") {
+        const result = await loginAction(email, password);
+        if (!result.ok) {
+          setError(result.error ?? "No se pudo iniciar sesión");
+          return;
+        }
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      const result = await registerAction({
+        name: String(formData.get("name") ?? ""),
+        email,
+        password,
+        career: String(formData.get("career") ?? ""),
+        university: String(formData.get("university") ?? ""),
+      });
+
+      if (!result.ok) {
+        setError(result.error ?? "No se pudo crear la cuenta");
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    });
+  }
+
+  function toggleMode() {
+    setMode((current) => (current === "login" ? "register" : "login"));
+    setError(null);
   }
 
   return (
@@ -92,7 +136,6 @@ export default function Home() {
     >
       <div className="relative z-20 mx-auto w-full min-w-0 max-w-[22.5rem] sm:max-w-[24.375rem]">
         <Card className="w-full overflow-hidden rounded-3xl border border-white/90 bg-white p-0 shadow-card-lg">
-          {/* Header oscuro integrado */}
           <div className="flex h-[86px] items-center justify-between rounded-t-3xl bg-graphite px-5 sm:h-[90px]">
             <Image
               src="/logo-kubo.png"
@@ -113,14 +156,77 @@ export default function Home() {
           <div className="px-6 py-5">
             <div className="mb-3">
               <h1 className="font-display text-2xl font-bold tracking-tight text-midnight-ink">
-                Bienvenido de nuevo
+                {mode === "login" ? "Bienvenido de nuevo" : "Crear cuenta"}
               </h1>
               <p className="mt-1 text-sm leading-snug text-cool-gray">
-                Ingresá para seguir estudiando.
+                {mode === "login"
+                  ? "Ingresá para seguir estudiando."
+                  : "Registrate para empezar a estudiar con Kubo."}
               </p>
             </div>
 
             <form className="space-y-3" onSubmit={handleSubmit}>
+              {error ? (
+                <p className="text-sm text-red-700" role="alert">
+                  {error}
+                </p>
+              ) : null}
+
+              {mode === "register" ? (
+                <>
+                  <div className="space-y-2">
+                    <InputLabel
+                      htmlFor="name"
+                      className="text-[0.8125rem] font-semibold tracking-wide text-graphite"
+                    >
+                      Nombre
+                    </InputLabel>
+                    <Input
+                      id="name"
+                      name="name"
+                      type="text"
+                      autoComplete="name"
+                      required
+                      placeholder="Tu nombre"
+                      className={inputClassName}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <InputLabel
+                      htmlFor="career"
+                      className="text-[0.8125rem] font-semibold tracking-wide text-graphite"
+                    >
+                      Carrera
+                    </InputLabel>
+                    <Input
+                      id="career"
+                      name="career"
+                      type="text"
+                      required
+                      placeholder="Psicología"
+                      className={inputClassName}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <InputLabel
+                      htmlFor="university"
+                      className="text-[0.8125rem] font-semibold tracking-wide text-graphite"
+                    >
+                      Universidad
+                    </InputLabel>
+                    <Input
+                      id="university"
+                      name="university"
+                      type="text"
+                      autoComplete="organization"
+                      required
+                      placeholder="Tu universidad"
+                      className={inputClassName}
+                    />
+                  </div>
+                </>
+              ) : null}
+
               <div className="space-y-2">
                 <InputLabel
                   htmlFor="email"
@@ -137,7 +243,7 @@ export default function Home() {
                     name="email"
                     type="email"
                     autoComplete="email"
-                    defaultValue={DEMO_EMAIL}
+                    required
                     placeholder="tu@email.com"
                     className={`${inputClassName} pl-10`}
                   />
@@ -169,8 +275,10 @@ export default function Home() {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    defaultValue={DEMO_PASSWORD}
+                    autoComplete={
+                      mode === "login" ? "current-password" : "new-password"
+                    }
+                    required
                     placeholder="••••••••"
                     className={`${inputClassName} pl-10 pr-10`}
                   />
@@ -179,25 +287,58 @@ export default function Home() {
 
               <Button
                 type="submit"
+                disabled={isPending}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold shadow-card transition-[transform,box-shadow,background-color] hover:-translate-y-px hover:bg-fresh-lime hover:shadow-card-cta active:translate-y-0"
               >
-                Ingresar
-                <span aria-hidden className="text-lg leading-none">
-                  →
-                </span>
+                {isPending
+                  ? "Procesando..."
+                  : mode === "login"
+                    ? "Ingresar"
+                    : "Crear cuenta"}
+                {!isPending ? (
+                  <span aria-hidden className="text-lg leading-none">
+                    →
+                  </span>
+                ) : null}
               </Button>
             </form>
 
             <hr className="my-3 border-0 border-t border-cool-gray/15" />
 
             <p className="text-center text-sm leading-snug text-cool-gray">
-              ¿No tenés cuenta?{" "}
-              <a
-                href="#"
-                className="font-semibold text-midnight-ink underline-offset-4 transition-colors hover:text-graphite hover:underline"
+              {mode === "login" ? (
+                <>
+                  ¿No tenés cuenta?{" "}
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="font-semibold text-midnight-ink underline-offset-4 transition-colors hover:text-graphite hover:underline"
+                  >
+                    Crear cuenta
+                  </button>
+                </>
+              ) : (
+                <>
+                  ¿Ya tenés cuenta?{" "}
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="font-semibold text-midnight-ink underline-offset-4 transition-colors hover:text-graphite hover:underline"
+                  >
+                    Iniciar sesión
+                  </button>
+                </>
+              )}
+            </p>
+
+            <p className="mt-2 text-center text-xs text-cool-gray">
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="underline-offset-4 transition-colors hover:text-midnight-ink hover:underline"
               >
-                Crear cuenta
-              </a>
+                Explorar demo sin cuenta
+              </button>
             </p>
           </div>
         </Card>

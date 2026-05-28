@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, useTransition } from "react";
-import { Button, buttonClassName } from "@/components/ui/Button";
+import { logoutAction } from "@/app/actions/auth";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, InputLabel } from "@/components/ui/Input";
 import { StatCard } from "@/components/StatCard";
@@ -32,6 +32,7 @@ export function AccountSection({
   const { message: feedbackMessage, showFeedback, dismissFeedback } =
     useFeedback();
   const [isPending, startTransition] = useTransition();
+  const [isLoggingOut, startLogoutTransition] = useTransition();
   const [account, setAccount] = useState(initialAccount);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState(initialAccount);
@@ -153,15 +154,19 @@ export function AccountSection({
           >
             Editar perfil
           </Button>
-          <Link
-            href="/"
-            className={buttonClassName(
-              "ghost",
-              "w-full text-cool-gray hover:text-midnight-ink sm:w-auto sm:min-w-[10rem]",
-            )}
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isLoggingOut}
+            className="w-full text-cool-gray hover:text-midnight-ink sm:w-auto sm:min-w-[10rem]"
+            onClick={() => {
+              startLogoutTransition(async () => {
+                await logoutAction();
+              });
+            }}
           >
-            Cerrar sesión
-          </Link>
+            {isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
+          </Button>
         </div>
       </Card>
 
