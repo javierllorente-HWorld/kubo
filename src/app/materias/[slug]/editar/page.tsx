@@ -1,52 +1,40 @@
-export const dynamic = "force-dynamic";
-
-import { notFound } from "next/navigation";
-import {
-  getCardsForDeckByDeckId,
-  getDeckEditContextBySlug,
-} from "@/lib/db-queries";
-import {
-  getMockDeckCards,
-  getMockDeckEditContext,
-} from "@/lib/db-fallback";
-import { EditDeckCardsContent } from "./EditDeckCardsContent";
+import { notFound, redirect } from "next/navigation";
+import { getDeckById, getDeckBySlug } from "@/lib/db-queries";
+import { getMockDeckById, getMockDeckBySlug } from "@/lib/db-fallback";
+import { deckEditHref, isPostgresUuid } from "@/lib/deck-routes";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function EditarDeckPage({ params }: PageProps) {
+export default async function LegacyEditarDeckPage({ params }: PageProps) {
   const { slug } = await params;
-  let context;
-  let cards;
-  let usingMockFallback = false;
 
-  try {
-    context = await getDeckEditContextBySlug(slug);
-    if (!context) {
-      notFound();
+  if (isPostgresUuid(slug)) {
+    try {
+      const deck = await getDeckById(slug);
+      if (deck) {
+        redirect(deckEditHref(deck.id));
+      }
+    } catch {
+      const mockDeck = getMockDeckById(slug);
+      if (mockDeck) {
+        redirect(deckEditHref(mockDeck.id));
+      }
     }
-    cards = await getCardsForDeckByDeckId(context.deck.id);
-  } catch (error) {
-    console.error(
-      `[materias/${slug}/editar] DB unavailable, using mock data:`,
-      error,
-    );
-    usingMockFallback = true;
-    context = getMockDeckEditContext(slug);
-    if (!context) {
-      notFound();
-    }
-    cards = getMockDeckCards(slug);
   }
 
-  return (
-    <EditDeckCardsContent
-      deck={context.deck}
-      subjectId={context.subjectId}
-      deckSlug={slug}
-      cards={cards}
-      usingMockFallback={usingMockFallback}
-    />
-  );
+  try {
+    const deck = await getDeckBySlug(slug);
+    if (deck) {
+      redirect(deckEditHref(deck.id));
+    }
+  } catch {
+    const mockDeck = getMockDeckBySlug(slug);
+    if (mockDeck) {
+      redirect(deckEditHref(mockDeck.id));
+    }
+  }
+
+  notFound();
 }

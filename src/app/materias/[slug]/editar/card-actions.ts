@@ -12,24 +12,23 @@ export type CardActionResult = {
   error?: string;
 };
 
-function revalidateDeckCardPaths(deckSlug: string, subjectId: string) {
-  revalidatePath(`/materias/${deckSlug}/editar`);
-  revalidatePath(`/materias/${deckSlug}/estudiar`);
+function revalidateDeckCardPaths(deckId: string, subjectId: string) {
+  revalidatePath(`/materias/decks/${deckId}/editar`);
+  revalidatePath(`/materias/decks/${deckId}/estudiar`);
   revalidatePath(`/materias/${subjectId}`);
   revalidatePath("/materias");
   revalidatePath("/dashboard");
 }
 
 export async function createCardAction(
-  deckSlug: string,
-  subjectId: string,
   deckId: string,
+  subjectId: string,
   question: string,
   answer: string,
 ): Promise<CardActionResult> {
   try {
     await createCard(deckId, question, answer);
-    revalidateDeckCardPaths(deckSlug, subjectId);
+    revalidateDeckCardPaths(deckId, subjectId);
     return { ok: true };
   } catch (error) {
     console.error("[materias] createCard failed:", error);
@@ -42,7 +41,7 @@ export async function createCardAction(
 }
 
 export async function updateCardAction(
-  deckSlug: string,
+  deckId: string,
   subjectId: string,
   cardId: string,
   question: string,
@@ -53,7 +52,7 @@ export async function updateCardAction(
     if (!updated) {
       return { ok: false, error: "No se encontró la card" };
     }
-    revalidateDeckCardPaths(deckSlug, subjectId);
+    revalidateDeckCardPaths(deckId, subjectId);
     return { ok: true };
   } catch (error) {
     console.error("[materias] updateCard failed:", error);
@@ -66,7 +65,7 @@ export async function updateCardAction(
 }
 
 export async function deleteCardAction(
-  deckSlug: string,
+  deckId: string,
   subjectId: string,
   cardId: string,
 ): Promise<CardActionResult> {
@@ -75,7 +74,7 @@ export async function deleteCardAction(
     if (!deleted) {
       return { ok: false, error: "No se encontró la card" };
     }
-    revalidateDeckCardPaths(deckSlug, subjectId);
+    revalidateDeckCardPaths(deckId, subjectId);
     return { ok: true };
   } catch (error) {
     console.error("[materias] deleteCard failed:", error);

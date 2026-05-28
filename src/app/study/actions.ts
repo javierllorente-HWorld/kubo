@@ -12,7 +12,7 @@ export type ReviewCardActionResult = {
 export async function reviewCardAction(
   cardId: string,
   ratingLabel: string,
-  options?: { deckSlug?: string },
+  options?: { deckId?: string },
 ): Promise<ReviewCardActionResult> {
   const rating = parseStudyRating(ratingLabel);
 
@@ -32,8 +32,8 @@ export async function reviewCardAction(
     revalidatePath("/perfil");
     revalidatePath("/materias");
 
-    if (options?.deckSlug) {
-      revalidatePath(`/materias/${options.deckSlug}/estudiar`);
+    if (options?.deckId) {
+      revalidatePath(`/materias/decks/${options.deckId}/estudiar`);
     }
 
     return { ok: true };

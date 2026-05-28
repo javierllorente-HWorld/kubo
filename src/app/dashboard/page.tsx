@@ -148,9 +148,9 @@ export default async function DashboardPage() {
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {previewDecks.map((deck) => (
                         <DeckPreviewCard
-                          key={deck.slug}
+                          key={deck.id}
                           deck={deck}
-                          href={`/materias/${deck.slug}/estudiar`}
+                          href={`/materias/decks/${deck.id}/estudiar`}
                           showMockLabel={usingMockFallback}
                         />
                       ))}

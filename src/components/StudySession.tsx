@@ -17,7 +17,7 @@ type StudySessionProps = {
   backHref: string;
   backLabel: string;
   usingMockFallback?: boolean;
-  deckSlug?: string;
+  deckId?: string;
 };
 
 const emptyStats: SessionStats = {
@@ -32,7 +32,7 @@ export function StudySession({
   backHref,
   backLabel,
   usingMockFallback = false,
-  deckSlug,
+  deckId,
 }: StudySessionProps) {
   const [cardIndex, setCardIndex] = useState(0);
   const [stats, setStats] = useState<SessionStats>(emptyStats);
@@ -87,7 +87,7 @@ export function StudySession({
 
       try {
         const result = await reviewCardAction(currentCard.id, ratingLabel, {
-          deckSlug,
+          deckId,
         });
 
         if (!result.ok) {

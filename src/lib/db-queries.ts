@@ -234,6 +234,7 @@ function mapDeckOverview(row: DeckStatsRow): DeckOverview {
 type FetchDeckStatsOptions = {
   slug?: string;
   subjectId?: string;
+  deckId?: string;
 };
 
 async function fetchDeckStatsRows(
@@ -241,6 +242,11 @@ async function fetchDeckStatsRows(
 ): Promise<DeckStatsRow[]> {
   const filters: string[] = [];
   const params: unknown[] = [];
+
+  if (options.deckId) {
+    params.push(options.deckId);
+    filters.push(`AND d.id = $${params.length}`);
+  }
 
   if (options.slug) {
     params.push(slugToDeckName(options.slug));
@@ -303,6 +309,12 @@ export async function getDeckBySlug(slug: string): Promise<DeckOverview | null> 
   return row ? mapDeckOverview(row) : null;
 }
 
+export async function getDeckById(deckId: string): Promise<DeckOverview | null> {
+  const rows = await fetchDeckStatsRows({ deckId });
+  const row = rows[0];
+  return row ? mapDeckOverview(row) : null;
+}
+
 export type DeckEditContext = {
   deck: DeckOverview;
   subjectId: string;
@@ -312,6 +324,21 @@ export async function getDeckEditContextBySlug(
   slug: string,
 ): Promise<DeckEditContext | null> {
   const rows = await fetchDeckStatsRows({ slug });
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    deck: mapDeckOverview(row),
+    subjectId: row.subject_id,
+  };
+}
+
+export async function getDeckEditContextById(
+  deckId: string,
+): Promise<DeckEditContext | null> {
+  const rows = await fetchDeckStatsRows({ deckId });
   const row = rows[0];
   if (!row) {
     return null;
@@ -625,7 +652,11 @@ export async function getCardsForDeck(
 
 export async function getCardsForDeckByDeckId(
   deckId: string,
+  options?: { dueOnly?: boolean },
 ): Promise<StudyFlashcard[]> {
+  const dueOnly = options?.dueOnly ?? false;
+  const dueFilter = dueOnly ? "AND c.next_review_at <= NOW()" : "";
+
   const rows = await query<CardRow>(
     `SELECT c.id, c.question, c.answer, c.status
      FROM cards c
@@ -636,6 +667,7 @@ export async function getCardsForDeckByDeckId(
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
        AND s.user_id = ${firstUserIdSubquery}
+       ${dueFilter}
      ORDER BY c.created_at ASC NULLS LAST, c.id ASC`,
     [deckId],
   );
@@ -778,7 +810,18 @@ export async function getDeckSessionCards(
     return [];
   }
 
-  const cards = await getCardsForDeck(slug, { dueOnly: true });
+  return getDeckSessionCardsByDeckId(deck.id);
+}
+
+export async function getDeckSessionCardsByDeckId(
+  deckId: string,
+): Promise<StudySessionCard[]> {
+  const deck = await getDeckById(deckId);
+  if (!deck) {
+    return [];
+  }
+
+  const cards = await getCardsForDeckByDeckId(deckId, { dueOnly: true });
   const limit =
     deck.pendingToday > 0
       ? Math.min(deck.pendingToday, cards.length)

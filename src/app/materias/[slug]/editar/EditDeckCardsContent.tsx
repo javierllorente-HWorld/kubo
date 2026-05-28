@@ -21,7 +21,7 @@ import {
 type EditDeckCardsContentProps = {
   deck: DeckOverview;
   subjectId: string;
-  deckSlug: string;
+  deckId: string;
   cards: StudyFlashcard[];
   usingMockFallback?: boolean;
 };
@@ -31,7 +31,7 @@ type ModalMode = "create" | "edit" | null;
 export function EditDeckCardsContent({
   deck: initialDeck,
   subjectId,
-  deckSlug,
+  deckId,
   cards: initialCards,
   usingMockFallback = false,
 }: EditDeckCardsContentProps) {
@@ -158,16 +158,15 @@ export function EditDeckCardsContent({
       const result =
         modalMode === "edit" && editingCard
           ? await updateCardAction(
-              deckSlug,
+              deckId,
               subjectId,
               editingCard.id,
               trimmedQuestion,
               trimmedAnswer,
             )
           : await createCardAction(
-              deckSlug,
+              deckId,
               subjectId,
-              deck.id,
               trimmedQuestion,
               trimmedAnswer,
             );
@@ -194,7 +193,7 @@ export function EditDeckCardsContent({
 
     startTransition(async () => {
       const result = await deleteCardAction(
-        deckSlug,
+        deckId,
         subjectId,
         deletingCard.id,
       );

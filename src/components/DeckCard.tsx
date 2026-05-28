@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ButtonLink";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { DeckOverview } from "@/lib/db-queries";
+import { deckEditHref, deckStudyHref } from "@/lib/deck-routes";
 
 type DeckCardProps = {
   deck: DeckOverview;
@@ -11,8 +12,8 @@ type DeckCardProps = {
 };
 
 export function DeckCard({ deck, onEdit, onDelete }: DeckCardProps) {
-  const studyHref = `/materias/${deck.slug}/estudiar`;
-  const editCardsHref = `/materias/${deck.slug}/editar`;
+  const studyHref = deckStudyHref(deck.id);
+  const editCardsHref = deckEditHref(deck.id);
 
   return (
     <Card className="flex h-full flex-col p-5">
