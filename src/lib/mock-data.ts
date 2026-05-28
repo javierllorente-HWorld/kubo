@@ -1,6 +1,8 @@
 export type Deck = {
+  id: string;
   slug: string;
   name: string;
+  description: string | null;
   emoji: string;
   masteryPercent: number;
   cardsLearned: number;
@@ -43,8 +45,10 @@ export const userProfile: UserProfile = {
 
 export const decks: Deck[] = [
   {
+    id: "mock-deck-cognitiva",
     slug: "psicologia-cognitiva",
     name: "Psicología Cognitiva",
+    description: null,
     emoji: "🧠",
     masteryPercent: 64,
     cardsLearned: 128,
@@ -52,8 +56,10 @@ export const decks: Deck[] = [
     pendingToday: 24,
   },
   {
+    id: "mock-deck-social",
     slug: "psicologia-social",
     name: "Psicología Social",
+    description: null,
     emoji: "👥",
     masteryPercent: 42,
     cardsLearned: 84,
@@ -132,6 +138,33 @@ export const recentActivity = [
 ] as const;
 
 export const deckIconOptions = ["🧠", "👥", "📚", "🧪", "📝", "🎓"] as const;
+
+export type Subject = {
+  id: string;
+  name: string;
+  emoji: string;
+  deckCount: number;
+};
+
+export const subjects: Subject[] = [
+  {
+    id: "mock-subject-cognitiva",
+    name: "Psicología Cognitiva",
+    emoji: "🧠",
+    deckCount: 1,
+  },
+  {
+    id: "mock-subject-social",
+    name: "Psicología Social",
+    emoji: "👥",
+    deckCount: 1,
+  },
+];
+
+export const decksBySubjectId: Record<string, Deck[]> = {
+  "mock-subject-cognitiva": [decks[0]],
+  "mock-subject-social": [decks[1]],
+};
 
 export const studyPreferences = [
   { label: "Objetivo diario", value: `${dailyGoal} cards` },

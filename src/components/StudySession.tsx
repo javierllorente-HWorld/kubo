@@ -1,17 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { BackLink } from "@/components/BackLink";
 import { SessionComplete, type SessionStats } from "@/components/SessionComplete";
 import { StudyCard } from "@/components/StudyCard";
 import { StudySessionHeader } from "@/components/StudySessionHeader";
+import { reviewCardAction } from "@/app/study/actions";
 import type { SessionCard } from "@/lib/mock-data";
+
+const POSTGRES_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type StudySessionProps = {
   cards: SessionCard[];
   mode: "daily" | "deck";
   backHref: string;
   backLabel: string;
+  usingMockFallback?: boolean;
+  deckId?: string;
 };
 
 const emptyStats: SessionStats = {
@@ -25,10 +31,13 @@ export function StudySession({
   mode,
   backHref,
   backLabel,
+  usingMockFallback = false,
+  deckId,
 }: StudySessionProps) {
   const [cardIndex, setCardIndex] = useState(0);
   const [stats, setStats] = useState<SessionStats>(emptyStats);
   const [isComplete, setIsComplete] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   if (isComplete) {
     return <SessionComplete stats={stats} />;
@@ -37,7 +46,7 @@ export function StudySession({
   const currentCard = cards[cardIndex];
   const sessionTotal = cards.length;
 
-  function handleRate() {
+  function advanceAfterRating(ratingLabel: string) {
     setStats((prev) => ({
       studied: prev.studied + 1,
       newCards: prev.newCards + (currentCard.status === "nueva" ? 1 : 0),
@@ -50,6 +59,51 @@ export function StudySession({
     }
 
     setCardIndex((index) => index + 1);
+  }
+
+  function handleRate(ratingLabel: string) {
+    if (usingMockFallback) {
+      console.log("[StudySession] mock fallback — no reviewCardAction", {
+        cardId: currentCard.id,
+        ratingLabel,
+      });
+      advanceAfterRating(ratingLabel);
+      return;
+    }
+
+    if (!POSTGRES_UUID_RE.test(currentCard.id)) {
+      console.error("[StudySession] card.id no es UUID de PostgreSQL", {
+        cardId: currentCard.id,
+        ratingLabel,
+      });
+      return;
+    }
+
+    startTransition(async () => {
+      console.log("[StudySession] reviewCardAction request", {
+        cardId: currentCard.id,
+        ratingLabel,
+      });
+
+      try {
+        const result = await reviewCardAction(currentCard.id, ratingLabel, {
+          deckId,
+        });
+
+        if (!result.ok) {
+          console.error("[StudySession] reviewCardAction rejected:", result.error);
+          return;
+        }
+
+        console.log("[StudySession] reviewCardAction ok", {
+          cardId: currentCard.id,
+          ratingLabel,
+        });
+        advanceAfterRating(ratingLabel);
+      } catch (error) {
+        console.error("[StudySession] reviewCardAction threw:", error);
+      }
+    });
   }
 
   return (
@@ -70,7 +124,12 @@ export function StudySession({
       </div>
 
       <div className="mt-5">
-        <StudyCard key={currentCard.id} card={currentCard} onRate={handleRate} />
+        <StudyCard
+          key={currentCard.id}
+          card={currentCard}
+          onRate={handleRate}
+          isRatingDisabled={isPending}
+        />
       </div>
     </>
   );

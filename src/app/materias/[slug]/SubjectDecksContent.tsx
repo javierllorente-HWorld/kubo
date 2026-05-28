@@ -3,117 +3,125 @@
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
-import { SubjectCard } from "@/components/SubjectCard";
+import { BackLink } from "@/components/BackLink";
+import { DeckCard } from "@/components/DeckCard";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, InputLabel } from "@/components/ui/Input";
-import type { SubjectOverview } from "@/lib/db-queries";
+import type { DeckOverview, SubjectOverview } from "@/lib/db-queries";
 import { MockAuditSection } from "@/components/dev/MockAuditLabel";
-import { deckIconOptions } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
 import {
-  createSubjectAction,
-  deleteSubjectAction,
-  updateSubjectAction,
-} from "./actions";
+  createDeckAction,
+  deleteDeckAction,
+  updateDeckAction,
+} from "./deck-actions";
 
-type MateriasContentProps = {
-  subjects: SubjectOverview[];
+type SubjectDecksContentProps = {
+  subject: SubjectOverview;
+  decks: DeckOverview[];
   usingMockFallback?: boolean;
 };
 
 type ModalMode = "create" | "edit" | null;
 
-export function MateriasContent({
-  subjects: initialSubjects,
+function nameToSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
+}
+
+export function SubjectDecksContent({
+  subject,
+  decks: initialDecks,
   usingMockFallback = false,
-}: MateriasContentProps) {
+}: SubjectDecksContentProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [subjects, setSubjects] = useState(initialSubjects);
+  const [decks, setDecks] = useState(initialDecks);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
-  const [editingSubject, setEditingSubject] = useState<SubjectOverview | null>(
-    null,
-  );
-  const [deletingSubject, setDeletingSubject] = useState<SubjectOverview | null>(
-    null,
-  );
-  const [selectedIcon, setSelectedIcon] = useState<
-    (typeof deckIconOptions)[number]
-  >(deckIconOptions[0]);
-  const [subjectName, setSubjectName] = useState("");
+  const [editingDeck, setEditingDeck] = useState<DeckOverview | null>(null);
+  const [deletingDeck, setDeletingDeck] = useState<DeckOverview | null>(null);
+  const [deckName, setDeckName] = useState("");
+  const [deckDescription, setDeckDescription] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const formTitleId = useId();
   const deleteTitleId = useId();
 
   useEffect(() => {
-    setSubjects(initialSubjects);
-  }, [initialSubjects]);
+    setDecks(initialDecks);
+  }, [initialDecks]);
 
   const isFormOpen = modalMode !== null;
-  const isDeleteOpen = deletingSubject !== null;
+  const isDeleteOpen = deletingDeck !== null;
 
   function openCreateModal() {
     setModalMode("create");
-    setEditingSubject(null);
-    setSubjectName("");
-    setSelectedIcon(deckIconOptions[0]);
+    setEditingDeck(null);
+    setDeckName("");
+    setDeckDescription("");
     setFormError(null);
   }
 
-  function openEditModal(subject: SubjectOverview) {
+  function openEditModal(deck: DeckOverview) {
     setModalMode("edit");
-    setEditingSubject(subject);
-    setSubjectName(subject.name);
-    setSelectedIcon(
-      (deckIconOptions.includes(subject.emoji as (typeof deckIconOptions)[number])
-        ? subject.emoji
-        : deckIconOptions[0]) as (typeof deckIconOptions)[number],
-    );
+    setEditingDeck(deck);
+    setDeckName(deck.name);
+    setDeckDescription(deck.description ?? "");
     setFormError(null);
   }
 
   function closeFormModal() {
     setModalMode(null);
-    setEditingSubject(null);
-    setSubjectName("");
-    setSelectedIcon(deckIconOptions[0]);
+    setEditingDeck(null);
+    setDeckName("");
+    setDeckDescription("");
     setFormError(null);
   }
 
   function closeDeleteModal() {
-    setDeletingSubject(null);
+    setDeletingDeck(null);
     setFormError(null);
   }
 
   function handleMockSave() {
-    const trimmedName = subjectName.trim();
+    const trimmedName = deckName.trim();
     if (!trimmedName) {
       setFormError("El nombre es obligatorio");
       return;
     }
 
-    if (modalMode === "edit" && editingSubject) {
-      setSubjects((current) =>
-        current.map((subject) =>
-          subject.id === editingSubject.id
+    const trimmedDescription = deckDescription.trim() || null;
+
+    if (modalMode === "edit" && editingDeck) {
+      setDecks((current) =>
+        current.map((deck) =>
+          deck.id === editingDeck.id
             ? {
-                ...subject,
+                ...deck,
                 name: trimmedName,
-                emoji: selectedIcon,
+                slug: nameToSlug(trimmedName),
+                description: trimmedDescription,
               }
-            : subject,
+            : deck,
         ),
       );
     } else {
-      setSubjects((current) => [
+      setDecks((current) => [
         ...current,
         {
-          id: `mock-subject-${Date.now()}`,
+          id: `mock-deck-${Date.now()}`,
+          slug: nameToSlug(trimmedName),
           name: trimmedName,
-          emoji: selectedIcon,
-          deckCount: 0,
+          description: trimmedDescription,
+          emoji: subject.emoji,
+          masteryPercent: 0,
+          cardsLearned: 0,
+          totalCards: 0,
+          pendingToday: 0,
         },
       ]);
     }
@@ -122,18 +130,18 @@ export function MateriasContent({
   }
 
   function handleMockDelete() {
-    if (!deletingSubject) {
+    if (!deletingDeck) {
       return;
     }
 
-    setSubjects((current) =>
-      current.filter((subject) => subject.id !== deletingSubject.id),
+    setDecks((current) =>
+      current.filter((deck) => deck.id !== deletingDeck.id),
     );
     closeDeleteModal();
   }
 
   function handleSave() {
-    const trimmedName = subjectName.trim();
+    const trimmedName = deckName.trim();
     if (!trimmedName) {
       setFormError("El nombre es obligatorio");
       return;
@@ -146,16 +154,21 @@ export function MateriasContent({
 
     startTransition(async () => {
       const result =
-        modalMode === "edit" && editingSubject
-          ? await updateSubjectAction(
-              editingSubject.id,
+        modalMode === "edit" && editingDeck
+          ? await updateDeckAction(
+              subject.id,
+              editingDeck.id,
               trimmedName,
-              selectedIcon,
+              deckDescription,
             )
-          : await createSubjectAction(trimmedName, selectedIcon);
+          : await createDeckAction(
+              subject.id,
+              trimmedName,
+              deckDescription,
+            );
 
       if (!result.ok) {
-        setFormError(result.error ?? "No se pudo guardar la materia");
+        setFormError(result.error ?? "No se pudo guardar el deck");
         return;
       }
 
@@ -165,7 +178,7 @@ export function MateriasContent({
   }
 
   function handleDelete() {
-    if (!deletingSubject) {
+    if (!deletingDeck) {
       return;
     }
 
@@ -175,10 +188,10 @@ export function MateriasContent({
     }
 
     startTransition(async () => {
-      const result = await deleteSubjectAction(deletingSubject.id);
+      const result = await deleteDeckAction(subject.id, deletingDeck.id);
 
       if (!result.ok) {
-        setFormError(result.error ?? "No se pudo quitar la materia");
+        setFormError(result.error ?? "No se pudo quitar el deck");
         return;
       }
 
@@ -191,23 +204,26 @@ export function MateriasContent({
     <AppShell>
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
         <div className="mx-auto max-w-6xl">
+          <BackLink href="/materias">Volver a materias</BackLink>
+
           <PageHeader
-            title="Materias"
-            description="Administrá tus materias y empezá a estudiar cuando quieras."
+            className="mt-4"
+            title={subject.name}
+            description="Administrá tus decks y empezá a estudiar."
           />
 
           <MockAuditSection enabled={usingMockFallback}>
             <section>
-              {subjects.length > 0 ? (
+              {decks.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {subjects.map((subject) => (
-                    <SubjectCard
-                      key={subject.id}
-                      subject={subject}
-                      onEdit={() => openEditModal(subject)}
+                  {decks.map((deck) => (
+                    <DeckCard
+                      key={deck.id}
+                      deck={deck}
+                      onEdit={() => openEditModal(deck)}
                       onDelete={() => {
                         setFormError(null);
-                        setDeletingSubject(subject);
+                        setDeletingDeck(deck);
                       }}
                     />
                   ))}
@@ -216,7 +232,7 @@ export function MateriasContent({
                     type="button"
                     onClick={openCreateModal}
                     className="flex min-h-[14rem] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-electric-lime/40 bg-white p-5 shadow-card transition-colors hover:border-electric-lime/60 hover:bg-electric-lime/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/40 focus-visible:ring-offset-2"
-                    aria-label="Agregar materia"
+                    aria-label="Agregar deck"
                   >
                     <span
                       className="flex h-11 w-11 items-center justify-center rounded-full bg-electric-lime/20 font-display text-2xl font-semibold text-midnight-ink"
@@ -225,17 +241,17 @@ export function MateriasContent({
                       +
                     </span>
                     <span className="mt-3 font-display text-sm font-semibold text-midnight-ink">
-                      Agregar materia
+                      Agregar deck
                     </span>
                   </button>
                 </div>
               ) : (
                 <EmptyState
-                  title="Todavía no tenés materias"
-                  description="Creá tu primera materia para organizar tus decks de estudio."
+                  title="Todavía no tenés decks en esta materia"
+                  description="Creá tu primer deck para empezar a estudiar con repetición espaciada."
                   action={
                     <Button type="button" onClick={openCreateModal}>
-                      Agregar materia
+                      Agregar deck
                     </Button>
                   }
                 />
@@ -266,50 +282,43 @@ export function MateriasContent({
               id={formTitleId}
               className="font-display text-lg font-semibold text-midnight-ink"
             >
-              {modalMode === "edit" ? "Editar materia" : "Nueva materia"}
+              {modalMode === "edit" ? "Editar deck" : "Nuevo deck"}
             </h2>
             <p className="mt-1 text-sm text-cool-gray">
               {modalMode === "edit"
-                ? "Actualizá el nombre o el ícono de tu materia."
-                : "Creá una materia para agrupar tus decks de estudio."}
+                ? "Actualizá el nombre o la descripción de tu deck."
+                : `Creá un deck dentro de ${subject.name}.`}
             </p>
 
             <div className="mt-5 space-y-4">
               <div>
-                <InputLabel htmlFor="subject-name">Nombre</InputLabel>
+                <InputLabel htmlFor="deck-name">Nombre</InputLabel>
                 <Input
-                  id="subject-name"
+                  id="deck-name"
                   type="text"
-                  placeholder="Ej: Psicología del desarrollo"
-                  value={subjectName}
-                  onChange={(event) => setSubjectName(event.target.value)}
+                  placeholder="Ej: Memoria y atención"
+                  value={deckName}
+                  onChange={(event) => setDeckName(event.target.value)}
                   className="mt-2"
                   disabled={isPending}
                 />
               </div>
 
               <div>
-                <InputLabel>Ícono</InputLabel>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {deckIconOptions.map((icon) => (
-                    <button
-                      key={icon}
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => setSelectedIcon(icon)}
-                      className={cn(
-                        "flex h-11 w-11 items-center justify-center rounded-xl border text-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-lime/40 focus-visible:ring-offset-2 disabled:opacity-50",
-                        selectedIcon === icon
-                          ? "border-electric-lime bg-fresh-lime/30"
-                          : "border-cool-gray/20 bg-soft-cloud hover:border-cool-gray/40",
-                      )}
-                      aria-label={`Seleccionar ícono ${icon}`}
-                      aria-pressed={selectedIcon === icon}
-                    >
-                      {icon}
-                    </button>
-                  ))}
-                </div>
+                <InputLabel htmlFor="deck-description">
+                  Descripción (opcional)
+                </InputLabel>
+                <textarea
+                  id="deck-description"
+                  placeholder="Ej: Repaso de modelos de memoria"
+                  value={deckDescription}
+                  onChange={(event) => setDeckDescription(event.target.value)}
+                  disabled={isPending}
+                  rows={3}
+                  className={cn(
+                    "mt-2 w-full resize-none rounded-xl border border-cool-gray/30 bg-white px-4 py-3 text-sm text-midnight-ink outline-none transition-shadow placeholder:text-cool-gray/70 focus:border-electric-lime focus:ring-2 focus:ring-electric-lime/25 disabled:opacity-50",
+                  )}
+                />
               </div>
 
               {formError ? (
@@ -339,14 +348,14 @@ export function MateriasContent({
                   ? "Guardando..."
                   : modalMode === "edit"
                     ? "Guardar cambios"
-                    : "Crear materia"}
+                    : "Crear deck"}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {isDeleteOpen && deletingSubject ? (
+      {isDeleteOpen && deletingDeck ? (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
           role="presentation"
@@ -367,15 +376,15 @@ export function MateriasContent({
               id={deleteTitleId}
               className="font-display text-lg font-semibold text-midnight-ink"
             >
-              ¿Quitar materia?
+              ¿Quitar deck?
             </h2>
             <p className="mt-2 text-sm text-cool-gray">
-              La materia{" "}
+              El deck{" "}
               <span className="font-medium text-midnight-ink">
-                {deletingSubject.name}
+                {deletingDeck.name}
               </span>{" "}
-              dejará de mostrarse en tu lista. Podés volver a organizar tus decks
-              más adelante.
+              dejará de mostrarse en esta materia. Tu historial de estudio se
+              conserva.
             </p>
             {formError ? (
               <p className="mt-3 text-sm text-red-700" role="alert">
@@ -398,7 +407,7 @@ export function MateriasContent({
                 onClick={handleDelete}
                 disabled={isPending}
               >
-                {isPending ? "Quitando..." : "Quitar materia"}
+                {isPending ? "Quitando..." : "Quitar deck"}
               </Button>
             </div>
           </div>

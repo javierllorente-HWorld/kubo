@@ -1,7 +1,10 @@
 import type {
   DashboardData,
+  DeckEditContext,
   DeckOverview,
+  StudyFlashcard,
   StudySessionCard,
+  SubjectOverview,
   UserProfile,
   UserSettings,
   UserStats,
@@ -11,9 +14,12 @@ import {
   dailySession,
   decks,
   getDeckBySlug,
+  getDeckCards,
   getDeckSessionCards,
   getSessionCards,
   progressStats,
+  decksBySubjectId,
+  subjects,
   userProfile,
 } from "@/lib/mock-data";
 
@@ -50,6 +56,22 @@ export function getMockDecksOverview(): DeckOverview[] {
   return decks.map((deck) => ({ ...deck }));
 }
 
+export function getMockSubjects(): SubjectOverview[] {
+  return subjects.map((subject) => ({ ...subject }));
+}
+
+export function getMockSubjectById(
+  subjectId: string,
+): SubjectOverview | null {
+  const subject = subjects.find((item) => item.id === subjectId);
+  return subject ? { ...subject } : null;
+}
+
+export function getMockDecksBySubjectId(subjectId: string): DeckOverview[] {
+  const subjectDecks = decksBySubjectId[subjectId] ?? [];
+  return subjectDecks.map((deck) => ({ ...deck }));
+}
+
 export function getMockDashboardData(): DashboardData {
   const overview = getMockDecksOverview();
 
@@ -77,6 +99,85 @@ export function getMockDeckBySlug(slug: string): DeckOverview | null {
   return deck ? { ...deck } : null;
 }
 
+export function getMockDeckById(deckId: string): DeckOverview | null {
+  const deck = decks.find((item) => item.id === deckId);
+  return deck ? { ...deck } : null;
+}
+
 export function getMockDeckSessionCards(slug: string): StudySessionCard[] {
   return getDeckSessionCards(slug);
+}
+
+export function getMockDeckSessionCardsByDeckId(
+  deckId: string,
+): StudySessionCard[] {
+  const deck = getMockDeckById(deckId);
+  if (!deck) {
+    return [];
+  }
+
+  return getDeckSessionCards(deck.slug);
+}
+
+function findMockSubjectIdForDeckSlug(slug: string): string | null {
+  for (const [subjectId, subjectDecks] of Object.entries(decksBySubjectId)) {
+    if (subjectDecks.some((deck) => deck.slug === slug)) {
+      return subjectId;
+    }
+  }
+
+  return null;
+}
+
+function findMockSubjectIdForDeckId(deckId: string): string | null {
+  for (const [subjectId, subjectDecks] of Object.entries(decksBySubjectId)) {
+    if (subjectDecks.some((deck) => deck.id === deckId)) {
+      return subjectId;
+    }
+  }
+
+  return null;
+}
+
+export function getMockDeckEditContext(slug: string): DeckEditContext | null {
+  const deck = getDeckBySlug(slug);
+  const subjectId = findMockSubjectIdForDeckSlug(slug);
+
+  if (!deck || !subjectId) {
+    return null;
+  }
+
+  return {
+    deck: { ...deck },
+    subjectId,
+  };
+}
+
+export function getMockDeckEditContextById(
+  deckId: string,
+): DeckEditContext | null {
+  const deck = getMockDeckById(deckId);
+  const subjectId = findMockSubjectIdForDeckId(deckId);
+
+  if (!deck || !subjectId) {
+    return null;
+  }
+
+  return {
+    deck: { ...deck },
+    subjectId,
+  };
+}
+
+export function getMockDeckCards(slug: string): StudyFlashcard[] {
+  return getDeckCards(slug).map((card) => ({ ...card }));
+}
+
+export function getMockDeckCardsByDeckId(deckId: string): StudyFlashcard[] {
+  const deck = getMockDeckById(deckId);
+  if (!deck) {
+    return [];
+  }
+
+  return getDeckCards(deck.slug).map((card) => ({ ...card }));
 }
