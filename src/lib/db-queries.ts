@@ -4,6 +4,7 @@ import {
   mapEventTypeToIcon,
   type ActivityEventItem,
 } from "@/lib/activity";
+import { DEMO_USER_ID, demoUserIdSql } from "@/lib/demo-user";
 import { query, withTransaction } from "@/lib/db";
 import {
   getNextReviewAtSql,
@@ -56,7 +57,7 @@ async function insertActivityEventWithQuery(
        metadata
      )
      VALUES (
-       ${firstUserIdSubquery},
+       ${demoUserIdSql},
        $1,
        $2,
        $3,
@@ -99,7 +100,7 @@ export async function getRecentActivity(): Promise<ActivityEventItem[]> {
             xp_earned,
             created_at
      FROM activity_events
-     WHERE user_id = ${firstUserIdSubquery}
+     WHERE user_id = ${demoUserIdSql}
      ORDER BY created_at DESC
      LIMIT 5`,
   );
@@ -174,22 +175,17 @@ export type UserStats = {
   weakest_deck_id: string | null;
 };
 
-const firstUserIdSubquery = "(SELECT id FROM users ORDER BY id LIMIT 1)";
-
 export async function getDemoUser(): Promise<DemoUser | null> {
   const rows = await query<DemoUser>(
-    "SELECT id, name, email, career, university, total_xp FROM users LIMIT 1",
+    "SELECT id, name, email, career, university, total_xp FROM users WHERE id = $1",
+    [DEMO_USER_ID],
   );
 
   return rows[0] ?? null;
 }
 
 export async function getUserProfile(): Promise<UserProfile | null> {
-  const rows = await query<UserProfile>(
-    "SELECT id, name, email, career, university, total_xp FROM users ORDER BY id LIMIT 1",
-  );
-
-  return rows[0] ?? null;
+  return getDemoUser();
 }
 
 export type UserProfileUpdate = {
@@ -239,7 +235,7 @@ export async function getUserSettings(): Promise<UserSettings | null> {
   const rows = await query<UserSettings>(
     `SELECT daily_goal_cards, study_mode
      FROM user_settings
-     WHERE user_id = ${firstUserIdSubquery}
+     WHERE user_id = ${demoUserIdSql}
      LIMIT 1`,
   );
 
@@ -255,7 +251,7 @@ export async function getUserStats(): Promise<UserStats | null> {
             strongest_deck_id,
             weakest_deck_id
      FROM user_stats
-     WHERE user_id = ${firstUserIdSubquery}
+     WHERE user_id = ${demoUserIdSql}
      LIMIT 1`,
   );
 
@@ -457,7 +453,7 @@ async function fetchDeckStatsRows(
      LEFT JOIN cards c ON c.deck_id = d.id
      WHERE d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
        ${extraFilters}
      GROUP BY d.id, d.subject_id, d.name, d.description, s.emoji
      ORDER BY d.name ASC`,
@@ -469,7 +465,7 @@ async function getTodayCompletedCards(): Promise<number> {
   const rows = await query<DailyProgressRow>(
     `SELECT cards_reviewed
      FROM daily_progress
-     WHERE user_id = ${firstUserIdSubquery}
+     WHERE user_id = ${demoUserIdSql}
        AND date = CURRENT_DATE
      LIMIT 1`,
   );
@@ -541,7 +537,7 @@ export async function getSubjectById(
      LEFT JOIN decks d ON d.subject_id = s.id
      WHERE s.id = $1
        AND s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
      GROUP BY s.id, s.name, s.emoji`,
     [subjectId],
   );
@@ -577,7 +573,7 @@ export async function createDeck(
        FROM subjects s
        WHERE s.id = $1
          AND s.deleted_at IS NULL
-         AND s.user_id = ${firstUserIdSubquery}
+         AND s.user_id = ${demoUserIdSql}
      )
      RETURNING id, name, description`,
     [subjectId, trimmedName, trimmedDescription],
@@ -629,7 +625,7 @@ export async function updateDeck(
        AND d.subject_id = s.id
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
      RETURNING d.id, d.name, d.description, d.subject_id`,
     [deckId, trimmedName, trimmedDescription],
   );
@@ -653,7 +649,7 @@ export async function deleteDeck(deckId: string): Promise<boolean> {
        AND d.subject_id = s.id
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
      RETURNING d.id`,
     [deckId],
   );
@@ -686,7 +682,7 @@ export async function getSubjects(): Promise<SubjectOverview[]> {
      FROM subjects s
      LEFT JOIN decks d ON d.subject_id = s.id
      WHERE s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
      GROUP BY s.id, s.name, s.emoji
      ORDER BY s.name ASC`,
   );
@@ -705,7 +701,7 @@ export async function createSubject(
 
   const rows = await query<SubjectListRow>(
     `INSERT INTO subjects (user_id, name, emoji)
-     VALUES (${firstUserIdSubquery}, $1, $2)
+     VALUES (${demoUserIdSql}, $1, $2)
      RETURNING id, name, emoji, 0::int AS deck_count`,
     [trimmedName, emoji ?? null],
   );
@@ -735,7 +731,7 @@ export async function updateSubject(
          updated_at = NOW()
      WHERE id = $1
        AND deleted_at IS NULL
-       AND user_id = ${firstUserIdSubquery}
+       AND user_id = ${demoUserIdSql}
      RETURNING id,
                name,
                emoji,
@@ -759,7 +755,7 @@ export async function deleteSubject(subjectId: string): Promise<boolean> {
          updated_at = NOW()
      WHERE id = $1
        AND deleted_at IS NULL
-       AND user_id = ${firstUserIdSubquery}
+       AND user_id = ${demoUserIdSql}
      RETURNING id`,
     [subjectId],
   );
@@ -772,7 +768,7 @@ export async function getSubjectsWithDecks(): Promise<SubjectWithDecks[]> {
     `SELECT id, name, slug, emoji
      FROM subjects
      WHERE deleted_at IS NULL
-       AND user_id = ${firstUserIdSubquery}
+       AND user_id = ${demoUserIdSql}
      ORDER BY name ASC`,
   );
 
@@ -820,7 +816,7 @@ export async function getCardsForDeck(
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
        ${dueFilter}
      ORDER BY c.created_at ASC NULLS LAST, c.id ASC`,
     [slugToDeckName(slug)],
@@ -845,7 +841,7 @@ export async function getCardsForDeckByDeckId(
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
        ${dueFilter}
      ORDER BY c.created_at ASC NULLS LAST, c.id ASC`,
     [deckId],
@@ -880,7 +876,7 @@ export async function createCard(
        WHERE d.id = $1
          AND d.deleted_at IS NULL
          AND s.deleted_at IS NULL
-         AND s.user_id = ${firstUserIdSubquery}
+         AND s.user_id = ${demoUserIdSql}
      )
      RETURNING id, question, answer, status`,
     [deckId, trimmedQuestion, trimmedAnswer],
@@ -922,7 +918,7 @@ export async function updateCard(
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
      RETURNING c.id, c.question, c.answer, c.status`,
     [cardId, trimmedQuestion, trimmedAnswer],
   );
@@ -943,7 +939,7 @@ export async function deleteCard(cardId: string): Promise<boolean> {
        AND c.deleted_at IS NULL
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
      RETURNING c.id`,
     [cardId],
   );
@@ -966,7 +962,7 @@ export async function getDueCardsForDailySession(): Promise<StudySessionCard[]> 
        AND d.deleted_at IS NULL
        AND s.deleted_at IS NULL
        AND c.next_review_at <= NOW()
-       AND s.user_id = ${firstUserIdSubquery}
+       AND s.user_id = ${demoUserIdSql}
      ORDER BY c.next_review_at ASC`,
   );
 
@@ -1080,7 +1076,7 @@ export async function reviewCard(
          AND c.deleted_at IS NULL
          AND d.deleted_at IS NULL
          AND s.deleted_at IS NULL
-         AND s.user_id = ${firstUserIdSubquery}`,
+         AND s.user_id = ${demoUserIdSql}`,
       [cardId],
     );
 
@@ -1089,7 +1085,7 @@ export async function reviewCard(
     const reviewRows = await queryInTx<{ id: string }>(
       `INSERT INTO card_reviews (card_id, user_id, rating, xp_earned, next_review_at)
        SELECT $1,
-              ${firstUserIdSubquery},
+              ${demoUserIdSql},
               $2,
               $3,
               ${nextReviewAtSql}
@@ -1102,7 +1098,7 @@ export async function reviewCard(
            AND c.deleted_at IS NULL
            AND d.deleted_at IS NULL
            AND s.deleted_at IS NULL
-           AND s.user_id = ${firstUserIdSubquery}
+           AND s.user_id = ${demoUserIdSql}
        )
        RETURNING id`,
       [cardId, rating, xpEarned],
@@ -1130,7 +1126,7 @@ export async function reviewCard(
          AND c.deleted_at IS NULL
          AND d.deleted_at IS NULL
          AND s.deleted_at IS NULL
-         AND s.user_id = ${firstUserIdSubquery}
+         AND s.user_id = ${demoUserIdSql}
        RETURNING c.id`,
       [cardId, cardStatus],
     );
@@ -1146,7 +1142,7 @@ export async function reviewCard(
     const userRows = await queryInTx<{ id: string }>(
       `UPDATE users
        SET total_xp = total_xp + $1
-       WHERE id = ${firstUserIdSubquery}
+       WHERE id = ${demoUserIdSql}
        RETURNING id`,
       [xpEarned],
     );
@@ -1161,7 +1157,7 @@ export async function reviewCard(
       `UPDATE daily_progress
        SET cards_reviewed = cards_reviewed + 1,
            xp_earned = xp_earned + $1
-       WHERE user_id = ${firstUserIdSubquery}
+       WHERE user_id = ${demoUserIdSql}
          AND date = CURRENT_DATE
        RETURNING id`,
       [xpEarned],
@@ -1174,7 +1170,7 @@ export async function reviewCard(
     } else {
       const progressInserted = await queryInTx<{ id: string }>(
         `INSERT INTO daily_progress (user_id, date, cards_reviewed, xp_earned)
-         VALUES (${firstUserIdSubquery}, CURRENT_DATE, 1, $1)
+         VALUES (${demoUserIdSql}, CURRENT_DATE, 1, $1)
          RETURNING id`,
         [xpEarned],
       );
