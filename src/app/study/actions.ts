@@ -36,13 +36,8 @@ export async function reviewCardAction(
     console.log("[study] reviewCardAction ok", { cardId, rating });
 
     revalidatePath("/dashboard");
-    revalidatePath("/estudiar/sesion");
     revalidatePath("/perfil");
     revalidatePath("/materias");
-
-    if (options?.deckId) {
-      revalidatePath(`/materias/decks/${options.deckId}/estudiar`);
-    }
 
     return { ok: true };
   } catch (error) {
@@ -73,13 +68,8 @@ export async function recordStudySessionCompletedAction(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/estudiar/sesion");
     revalidatePath("/perfil");
     revalidatePath("/materias");
-
-    if (data.deckId) {
-      revalidatePath(`/materias/decks/${data.deckId}/estudiar`);
-    }
 
     return { ok: true };
   } catch (error) {

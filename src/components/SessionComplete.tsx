@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ButtonLink";
 import { StatCard } from "@/components/StatCard";
-import { deckStudyHref } from "@/lib/deck-routes";
+import { deckEditHref } from "@/lib/deck-routes";
 
 export type SessionStats = {
   studied: number;
@@ -63,22 +63,13 @@ export function SessionComplete({
         >
           Ver materias
         </ButtonLink>
-        {mode === "daily" ? (
-          <ButtonLink
-            href="/estudiar/sesion"
-            variant="secondary"
-            className="w-full min-h-11 sm:min-w-[10rem]"
-          >
-            Seguir estudiando
-          </ButtonLink>
-        ) : null}
         {mode === "deck" && deckId ? (
           <ButtonLink
-            href={deckStudyHref(deckId)}
+            href={deckEditHref(deckId)}
             variant="secondary"
             className="w-full min-h-11 sm:min-w-[10rem]"
           >
-            Seguir con este deck
+            Editar cards
           </ButtonLink>
         ) : null}
       </div>
