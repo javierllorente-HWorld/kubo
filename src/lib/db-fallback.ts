@@ -1,3 +1,4 @@
+import { DEMO_USER_ID } from "@/lib/demo-user";
 import type {
   DashboardData,
   DeckEditContext,
@@ -25,7 +26,7 @@ import {
 
 export function getMockUserProfile(): UserProfile {
   return {
-    id: "mock",
+    id: DEMO_USER_ID,
     name: userProfile.name,
     email: userProfile.email,
     career: userProfile.career,

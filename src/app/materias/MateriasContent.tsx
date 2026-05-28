@@ -8,8 +8,10 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, InputLabel } from "@/components/ui/Input";
+import type { ActivityEventItem } from "@/lib/activity";
 import type { SubjectOverview } from "@/lib/db-queries";
 import { MockAuditSection } from "@/components/dev/MockAuditLabel";
+import { FeedbackToast, useFeedback } from "@/components/ui/FeedbackToast";
 import { deckIconOptions } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
 import {
@@ -21,6 +23,8 @@ import {
 type MateriasContentProps = {
   subjects: SubjectOverview[];
   usingMockFallback?: boolean;
+  recentActivity?: ActivityEventItem[];
+  usingMockActivity?: boolean;
 };
 
 type ModalMode = "create" | "edit" | null;
@@ -28,8 +32,12 @@ type ModalMode = "create" | "edit" | null;
 export function MateriasContent({
   subjects: initialSubjects,
   usingMockFallback = false,
+  recentActivity,
+  usingMockActivity = false,
 }: MateriasContentProps) {
   const router = useRouter();
+  const { message: feedbackMessage, showFeedback, dismissFeedback } =
+    useFeedback();
   const [isPending, startTransition] = useTransition();
   const [subjects, setSubjects] = useState(initialSubjects);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -118,7 +126,10 @@ export function MateriasContent({
       ]);
     }
 
+    const successMessage =
+      modalMode === "edit" ? "Materia actualizada" : "Materia creada";
     closeFormModal();
+    showFeedback(successMessage);
   }
 
   function handleMockDelete() {
@@ -130,6 +141,7 @@ export function MateriasContent({
       current.filter((subject) => subject.id !== deletingSubject.id),
     );
     closeDeleteModal();
+    showFeedback("Materia eliminada");
   }
 
   function handleSave() {
@@ -159,7 +171,10 @@ export function MateriasContent({
         return;
       }
 
+      const successMessage =
+        modalMode === "edit" ? "Materia actualizada" : "Materia creada";
       closeFormModal();
+      showFeedback(successMessage);
       router.refresh();
     });
   }
@@ -183,12 +198,17 @@ export function MateriasContent({
       }
 
       closeDeleteModal();
+      showFeedback("Materia eliminada");
       router.refresh();
     });
   }
 
   return (
-    <AppShell>
+    <AppShell
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
+      showNotificationsMockLabel={usingMockActivity}
+    >
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
         <div className="mx-auto max-w-6xl">
           <PageHeader
@@ -367,15 +387,14 @@ export function MateriasContent({
               id={deleteTitleId}
               className="font-display text-lg font-semibold text-midnight-ink"
             >
-              ¿Quitar materia?
+              ¿Seguro querés eliminar esta materia?
             </h2>
             <p className="mt-2 text-sm text-cool-gray">
-              La materia{" "}
+              Se eliminará{" "}
               <span className="font-medium text-midnight-ink">
                 {deletingSubject.name}
               </span>{" "}
-              dejará de mostrarse en tu lista. Podés volver a organizar tus decks
-              más adelante.
+              y ya no la verás en tu lista de materias.
             </p>
             {formError ? (
               <p className="mt-3 text-sm text-red-700" role="alert">
@@ -398,12 +417,14 @@ export function MateriasContent({
                 onClick={handleDelete}
                 disabled={isPending}
               >
-                {isPending ? "Quitando..." : "Quitar materia"}
+                {isPending ? "Eliminando..." : "Eliminar materia"}
               </Button>
             </div>
           </div>
         </div>
       ) : null}
+
+      <FeedbackToast message={feedbackMessage} onDismiss={dismissFeedback} />
     </AppShell>
   );
 }

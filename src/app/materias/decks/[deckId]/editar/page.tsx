@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
+import { loadRecentActivityForHeader } from "@/app/actions/activity";
 import {
   getCardsForDeckByDeckId,
   getDeckEditContextById,
@@ -20,6 +21,8 @@ export default async function EditarDeckPage({ params }: PageProps) {
   let context;
   let cards;
   let usingMockFallback = false;
+  const { items: recentActivity, usingMockFallback: usingMockActivity } =
+    await loadRecentActivityForHeader();
 
   try {
     context = await getDeckEditContextById(deckId);
@@ -47,6 +50,8 @@ export default async function EditarDeckPage({ params }: PageProps) {
       deckId={deckId}
       cards={cards}
       usingMockFallback={usingMockFallback}
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
     />
   );
 }

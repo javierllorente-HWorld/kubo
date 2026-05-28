@@ -9,8 +9,10 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input, InputLabel } from "@/components/ui/Input";
+import type { ActivityEventItem } from "@/lib/activity";
 import type { DeckOverview, SubjectOverview } from "@/lib/db-queries";
 import { MockAuditSection } from "@/components/dev/MockAuditLabel";
+import { FeedbackToast, useFeedback } from "@/components/ui/FeedbackToast";
 import { cn } from "@/lib/cn";
 import {
   createDeckAction,
@@ -22,6 +24,8 @@ type SubjectDecksContentProps = {
   subject: SubjectOverview;
   decks: DeckOverview[];
   usingMockFallback?: boolean;
+  recentActivity?: ActivityEventItem[];
+  usingMockActivity?: boolean;
 };
 
 type ModalMode = "create" | "edit" | null;
@@ -38,8 +42,12 @@ export function SubjectDecksContent({
   subject,
   decks: initialDecks,
   usingMockFallback = false,
+  recentActivity,
+  usingMockActivity = false,
 }: SubjectDecksContentProps) {
   const router = useRouter();
+  const { message: feedbackMessage, showFeedback, dismissFeedback } =
+    useFeedback();
   const [isPending, startTransition] = useTransition();
   const [decks, setDecks] = useState(initialDecks);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -126,7 +134,10 @@ export function SubjectDecksContent({
       ]);
     }
 
+    const successMessage =
+      modalMode === "edit" ? "Deck actualizado" : "Deck creado";
     closeFormModal();
+    showFeedback(successMessage);
   }
 
   function handleMockDelete() {
@@ -138,6 +149,7 @@ export function SubjectDecksContent({
       current.filter((deck) => deck.id !== deletingDeck.id),
     );
     closeDeleteModal();
+    showFeedback("Deck eliminado");
   }
 
   function handleSave() {
@@ -172,7 +184,10 @@ export function SubjectDecksContent({
         return;
       }
 
+      const successMessage =
+        modalMode === "edit" ? "Deck actualizado" : "Deck creado";
       closeFormModal();
+      showFeedback(successMessage);
       router.refresh();
     });
   }
@@ -191,17 +206,22 @@ export function SubjectDecksContent({
       const result = await deleteDeckAction(subject.id, deletingDeck.id);
 
       if (!result.ok) {
-        setFormError(result.error ?? "No se pudo quitar el deck");
+        setFormError(result.error ?? "No se pudo eliminar el deck");
         return;
       }
 
       closeDeleteModal();
+      showFeedback("Deck eliminado");
       router.refresh();
     });
   }
 
   return (
-    <AppShell>
+    <AppShell
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
+      showNotificationsMockLabel={usingMockActivity}
+    >
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
         <div className="mx-auto max-w-6xl">
           <BackLink href="/materias">Volver a materias</BackLink>
@@ -376,15 +396,14 @@ export function SubjectDecksContent({
               id={deleteTitleId}
               className="font-display text-lg font-semibold text-midnight-ink"
             >
-              ¿Quitar deck?
+              ¿Seguro querés eliminar este deck?
             </h2>
             <p className="mt-2 text-sm text-cool-gray">
-              El deck{" "}
+              Se eliminará{" "}
               <span className="font-medium text-midnight-ink">
                 {deletingDeck.name}
               </span>{" "}
-              dejará de mostrarse en esta materia. Tu historial de estudio se
-              conserva.
+              y ya no lo verás en esta materia.
             </p>
             {formError ? (
               <p className="mt-3 text-sm text-red-700" role="alert">
@@ -407,12 +426,14 @@ export function SubjectDecksContent({
                 onClick={handleDelete}
                 disabled={isPending}
               >
-                {isPending ? "Quitando..." : "Quitar deck"}
+                {isPending ? "Eliminando..." : "Eliminar deck"}
               </Button>
             </div>
           </div>
         </div>
       ) : null}
+
+      <FeedbackToast message={feedbackMessage} onDismiss={dismissFeedback} />
     </AppShell>
   );
 }

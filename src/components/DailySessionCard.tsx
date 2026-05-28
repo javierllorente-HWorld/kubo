@@ -65,7 +65,7 @@ export function DailySessionCard({ dailySession }: DailySessionCardProps) {
             key={item.slug}
             className="flex items-center justify-between gap-3 text-sm"
           >
-            <span className="text-white/90">{item.name}</span>
+            <span className="min-w-0 truncate text-white/90">{item.name}</span>
             <span className="shrink-0 font-medium text-electric-lime">
               {item.pending} cards
             </span>

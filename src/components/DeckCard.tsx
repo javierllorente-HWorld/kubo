@@ -62,7 +62,7 @@ export function DeckCard({ deck, onEdit, onDelete }: DeckCardProps) {
           Editar cards
         </ButtonLink>
         {onEdit || onDelete ? (
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-2">
             {onEdit ? (
               <Button
                 type="button"

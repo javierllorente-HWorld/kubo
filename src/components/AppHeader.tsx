@@ -2,13 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   ActivityIconBadge,
   BellIcon,
 } from "@/components/icons/NotificationIcons";
 import { MockAuditLabel } from "@/components/dev/MockAuditLabel";
-import { recentActivity, userProfile } from "@/lib/mock-data";
+import { getRecentActivityAction } from "@/app/actions/activity";
+import type { ActivityEventItem } from "@/lib/activity";
+import { getMockRecentActivity } from "@/lib/activity-mock";
+import { userProfile } from "@/lib/mock-data";
 import { cn } from "@/lib/cn";
 
 type HeaderProfile = {
@@ -20,6 +23,8 @@ type AppHeaderProps = {
   compact?: boolean;
   className?: string;
   profile?: HeaderProfile;
+  recentActivity?: ActivityEventItem[];
+  usingMockActivity?: boolean;
   showAvatarMockLabel?: boolean;
   showNotificationsMockLabel?: boolean;
 };
@@ -28,15 +33,39 @@ export function AppHeader({
   compact = false,
   className,
   profile: profileOverride,
-  showAvatarMockLabel = true,
-  showNotificationsMockLabel = true,
+  recentActivity: initialRecentActivity,
+  usingMockActivity = false,
+  showAvatarMockLabel = false,
+  showNotificationsMockLabel = false,
 }: AppHeaderProps) {
   const displayProfile = profileOverride ?? {
     name: userProfile.name,
     initials: userProfile.initials,
   };
+  const fallbackActivity = getMockRecentActivity();
+  const [activityItems, setActivityItems] = useState<ActivityEventItem[]>(
+    initialRecentActivity ?? fallbackActivity,
+  );
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isRefreshingActivity, startRefreshTransition] = useTransition();
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialRecentActivity) {
+      setActivityItems(initialRecentActivity);
+    }
+  }, [initialRecentActivity]);
+
+  useEffect(() => {
+    if (!notificationsOpen || usingMockActivity) {
+      return;
+    }
+
+    startRefreshTransition(async () => {
+      const items = await getRecentActivityAction();
+      setActivityItems(items);
+    });
+  }, [notificationsOpen, usingMockActivity]);
 
   useEffect(() => {
     if (!notificationsOpen) {
@@ -111,27 +140,42 @@ export function AppHeader({
               <p className="mt-0.5 text-xs text-cool-gray">
                 Tus últimos avances
               </p>
-              <ul className="mt-4">
-                {recentActivity.map((item) => (
-                  <li
-                    key={item.title}
-                    className="flex gap-3 border-b border-cool-gray/15 py-3.5 last:border-0"
-                  >
-                    <ActivityIconBadge type={item.type} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="pr-2 text-sm font-medium leading-snug text-midnight-ink">
-                          {item.title}
-                        </p>
-                        <span className="shrink-0 rounded-full bg-electric-lime/20 px-2 py-0.5 text-[11px] font-semibold leading-none text-midnight-ink">
-                          {item.xp}
-                        </span>
+              {isRefreshingActivity ? (
+                <p className="mt-3 text-xs text-cool-gray">Actualizando...</p>
+              ) : null}
+              {activityItems.length > 0 ? (
+                <ul className="mt-4">
+                  {activityItems.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex gap-3 border-b border-cool-gray/15 py-3.5 last:border-0"
+                    >
+                      <ActivityIconBadge type={item.type} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="pr-2 text-sm font-medium leading-snug text-midnight-ink">
+                            {item.title}
+                          </p>
+                          <span className="shrink-0 rounded-full bg-electric-lime/20 px-2 py-0.5 text-[11px] font-semibold leading-none text-midnight-ink">
+                            {item.xp}
+                          </span>
+                        </div>
+                        {item.description ? (
+                          <p className="mt-0.5 line-clamp-2 text-xs text-cool-gray">
+                            {item.description}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 text-xs text-cool-gray">{item.time}</p>
                       </div>
-                      <p className="mt-1 text-xs text-cool-gray">{item.time}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-sm text-cool-gray">
+                  Todavía no hay actividad reciente. Empezá a estudiar para ver tus
+                  avances acá.
+                </p>
+              )}
             </div>
           )}
         </div>

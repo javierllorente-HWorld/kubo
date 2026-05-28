@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { BackLink } from "@/components/BackLink";
 import { SessionComplete, type SessionStats } from "@/components/SessionComplete";
 import { StudyCard } from "@/components/StudyCard";
 import { StudySessionHeader } from "@/components/StudySessionHeader";
-import { reviewCardAction } from "@/app/study/actions";
+import {
+  recordStudySessionCompletedAction,
+  reviewCardAction,
+} from "@/app/study/actions";
 import type { SessionCard } from "@/lib/mock-data";
+import { getRatingXp, parseStudyRating } from "@/lib/study-rating";
 
 const POSTGRES_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -24,6 +28,7 @@ const emptyStats: SessionStats = {
   studied: 0,
   newCards: 0,
   reviewCards: 0,
+  xpEarned: 0,
 };
 
 export function StudySession({
@@ -38,19 +43,54 @@ export function StudySession({
   const [stats, setStats] = useState<SessionStats>(emptyStats);
   const [isComplete, setIsComplete] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const sessionRecordedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isComplete || usingMockFallback || sessionRecordedRef.current) {
+      return;
+    }
+
+    if (stats.studied <= 0) {
+      return;
+    }
+
+    sessionRecordedRef.current = true;
+
+    void recordStudySessionCompletedAction({
+      xpEarned: stats.xpEarned,
+      studied: stats.studied,
+      newCards: stats.newCards,
+      reviewCards: stats.reviewCards,
+      deckId,
+    }).then((result) => {
+      if (!result.ok) {
+        console.error(
+          "[StudySession] recordStudySessionCompletedAction:",
+          result.error,
+        );
+        sessionRecordedRef.current = false;
+      }
+    });
+  }, [isComplete, usingMockFallback, stats, deckId]);
 
   if (isComplete) {
-    return <SessionComplete stats={stats} />;
+    return (
+      <SessionComplete stats={stats} mode={mode} deckId={deckId} />
+    );
   }
 
   const currentCard = cards[cardIndex];
   const sessionTotal = cards.length;
 
   function advanceAfterRating(ratingLabel: string) {
+    const rating = parseStudyRating(ratingLabel);
+    const xpGained = rating ? getRatingXp(rating) : 0;
+
     setStats((prev) => ({
       studied: prev.studied + 1,
       newCards: prev.newCards + (currentCard.status === "nueva" ? 1 : 0),
       reviewCards: prev.reviewCards + (currentCard.status === "repaso" ? 1 : 0),
+      xpEarned: prev.xpEarned + xpGained,
     }));
 
     if (cardIndex + 1 >= sessionTotal) {

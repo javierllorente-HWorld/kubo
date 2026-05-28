@@ -1,11 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId, useState } from "react";
-import { Button, buttonClassName } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useState, useTransition } from "react";
+import { logoutAction } from "@/app/actions/auth";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, InputLabel } from "@/components/ui/Input";
 import { StatCard } from "@/components/StatCard";
+import { FeedbackToast, useFeedback } from "@/components/ui/FeedbackToast";
+import { updateUserProfileAction } from "./actions";
 
 export type AccountData = {
   name: string;
@@ -16,13 +19,29 @@ export type AccountData = {
 
 type AccountSectionProps = {
   initialAccount: AccountData;
+  userId?: string;
+  usingMockFallback?: boolean;
 };
 
-export function AccountSection({ initialAccount }: AccountSectionProps) {
+export function AccountSection({
+  initialAccount,
+  userId,
+  usingMockFallback = false,
+}: AccountSectionProps) {
+  const router = useRouter();
+  const { message: feedbackMessage, showFeedback, dismissFeedback } =
+    useFeedback();
+  const [isPending, startTransition] = useTransition();
+  const [isLoggingOut, startLogoutTransition] = useTransition();
   const [account, setAccount] = useState(initialAccount);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState(initialAccount);
+  const [formError, setFormError] = useState<string | null>(null);
   const titleId = useId();
+
+  useEffect(() => {
+    setAccount(initialAccount);
+  }, [initialAccount]);
 
   const accountFields = [
     { label: "Nombre", value: account.name },
@@ -33,18 +52,62 @@ export function AccountSection({ initialAccount }: AccountSectionProps) {
 
   function openModal() {
     setForm(account);
+    setFormError(null);
     setIsModalOpen(true);
   }
 
   function closeModal() {
     setIsModalOpen(false);
+    setFormError(null);
   }
 
   function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // TODO: persist profile update to PostgreSQL when auth/write path is ready
-    setAccount(form);
-    closeModal();
+    setFormError(null);
+
+    const trimmed = {
+      name: form.name.trim(),
+      email: form.email.trim(),
+      university: form.university.trim(),
+      career: form.career.trim(),
+    };
+
+    if (!trimmed.name) {
+      setFormError("El nombre es obligatorio");
+      return;
+    }
+
+    if (!trimmed.email) {
+      setFormError("El email es obligatorio");
+      return;
+    }
+
+    if (usingMockFallback) {
+      setAccount(trimmed);
+      closeModal();
+      showFeedback("Perfil actualizado");
+      return;
+    }
+
+    if (!userId) {
+      setFormError("No se pudo identificar el usuario");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await updateUserProfileAction(userId, trimmed);
+
+      if (!result.ok) {
+        console.error("[AccountSection] updateUserProfileAction:", result.error);
+        setFormError(result.error ?? "No se pudo guardar el perfil");
+        return;
+      }
+
+      setAccount(trimmed);
+      closeModal();
+      showFeedback("Perfil actualizado");
+      router.refresh();
+    });
   }
 
   useEffect(() => {
@@ -91,15 +154,19 @@ export function AccountSection({ initialAccount }: AccountSectionProps) {
           >
             Editar perfil
           </Button>
-          <Link
-            href="/"
-            className={buttonClassName(
-              "ghost",
-              "w-full text-cool-gray hover:text-midnight-ink sm:w-auto sm:min-w-[10rem]",
-            )}
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isLoggingOut}
+            className="w-full text-cool-gray hover:text-midnight-ink sm:w-auto sm:min-w-[10rem]"
+            onClick={() => {
+              startLogoutTransition(async () => {
+                await logoutAction();
+              });
+            }}
           >
-            Cerrar sesión
-          </Link>
+            {isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
+          </Button>
         </div>
       </Card>
 
@@ -131,6 +198,11 @@ export function AccountSection({ initialAccount }: AccountSectionProps) {
             </p>
 
             <form className="mt-5 space-y-4" onSubmit={handleSave}>
+              {formError ? (
+                <p className="text-sm text-red-700" role="alert">
+                  {formError}
+                </p>
+              ) : null}
               <div>
                 <InputLabel htmlFor="profile-name">Nombre</InputLabel>
                 <Input
@@ -199,7 +271,7 @@ export function AccountSection({ initialAccount }: AccountSectionProps) {
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1">
+                <Button type="submit" className="flex-1" disabled={isPending}>
                   Guardar cambios
                 </Button>
               </div>
@@ -207,6 +279,8 @@ export function AccountSection({ initialAccount }: AccountSectionProps) {
           </div>
         </div>
       )}
+
+      <FeedbackToast message={feedbackMessage} onDismiss={dismissFeedback} />
     </>
   );
 }

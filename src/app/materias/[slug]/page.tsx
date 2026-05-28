@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
+import { loadRecentActivityForHeader } from "@/app/actions/activity";
 import {
   getDecksBySubjectId,
   getSubjectById,
@@ -20,6 +21,8 @@ export default async function SubjectDecksPage({ params }: PageProps) {
   let subject;
   let decks;
   let usingMockFallback = false;
+  const { items: recentActivity, usingMockFallback: usingMockActivity } =
+    await loadRecentActivityForHeader();
 
   try {
     subject = await getSubjectById(subjectId);
@@ -45,6 +48,8 @@ export default async function SubjectDecksPage({ params }: PageProps) {
       subject={subject}
       decks={decks}
       usingMockFallback={usingMockFallback}
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
     />
   );
 }

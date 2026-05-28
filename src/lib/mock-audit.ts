@@ -1,8 +1,5 @@
-/** TEMP: diagnostic mock labels for Preview — remove with src/components/dev */
+/** Diagnostic mock labels — enable with NEXT_PUBLIC_MOCK_AUDIT=1 only */
 
 export function isMockAuditEnabled(): boolean {
-  return (
-    process.env.NEXT_PUBLIC_MOCK_AUDIT === "1" ||
-    process.env.VERCEL_ENV === "preview"
-  );
+  return process.env.NEXT_PUBLIC_MOCK_AUDIT === "1";
 }

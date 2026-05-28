@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { Input, InputLabel } from "@/components/ui/Input";
+import type { ActivityEventItem } from "@/lib/activity";
 import type { DeckOverview, StudyFlashcard } from "@/lib/db-queries";
 import { MockAuditSection } from "@/components/dev/MockAuditLabel";
+import { FeedbackToast, useFeedback } from "@/components/ui/FeedbackToast";
 import { cn } from "@/lib/cn";
 import {
   createCardAction,
@@ -24,6 +26,8 @@ type EditDeckCardsContentProps = {
   deckId: string;
   cards: StudyFlashcard[];
   usingMockFallback?: boolean;
+  recentActivity?: ActivityEventItem[];
+  usingMockActivity?: boolean;
 };
 
 type ModalMode = "create" | "edit" | null;
@@ -34,8 +38,12 @@ export function EditDeckCardsContent({
   deckId,
   cards: initialCards,
   usingMockFallback = false,
+  recentActivity,
+  usingMockActivity = false,
 }: EditDeckCardsContentProps) {
   const router = useRouter();
+  const { message: feedbackMessage, showFeedback, dismissFeedback } =
+    useFeedback();
   const [isPending, startTransition] = useTransition();
   const [deck, setDeck] = useState(initialDeck);
   const [cards, setCards] = useState(initialCards);
@@ -122,7 +130,10 @@ export function EditDeckCardsContent({
       }));
     }
 
+    const successMessage =
+      modalMode === "edit" ? "Card actualizada" : "Card creada";
     closeFormModal();
+    showFeedback(successMessage);
   }
 
   function handleMockDelete() {
@@ -138,6 +149,7 @@ export function EditDeckCardsContent({
       totalCards: Math.max(0, current.totalCards - 1),
     }));
     closeDeleteModal();
+    showFeedback("Card eliminada");
   }
 
   function handleSave() {
@@ -176,7 +188,10 @@ export function EditDeckCardsContent({
         return;
       }
 
+      const successMessage =
+        modalMode === "edit" ? "Card actualizada" : "Card creada";
       closeFormModal();
+      showFeedback(successMessage);
       router.refresh();
     });
   }
@@ -204,12 +219,17 @@ export function EditDeckCardsContent({
       }
 
       closeDeleteModal();
+      showFeedback("Card eliminada");
       router.refresh();
     });
   }
 
   return (
-    <AppShell>
+    <AppShell
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
+      showNotificationsMockLabel={usingMockActivity}
+    >
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
         <div className="mx-auto max-w-3xl">
           <BackLink href={`/materias/${subjectId}`}>
@@ -251,7 +271,7 @@ export function EditDeckCardsContent({
                               {card.answer}
                             </p>
                           </div>
-                          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+                          <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row sm:gap-2">
                             <Button
                               type="button"
                               variant="secondary"
@@ -309,7 +329,7 @@ export function EditDeckCardsContent({
             role="dialog"
             aria-modal="true"
             aria-labelledby={formTitleId}
-            className="relative max-h-[min(90dvh,40rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-cool-gray/15 bg-white p-5 shadow-card-lg sm:max-h-none sm:p-6"
+            className="relative max-h-[min(90dvh,40rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-cool-gray/15 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-card-lg sm:max-h-none sm:p-6"
           >
             <h2
               id={formTitleId}
@@ -407,11 +427,10 @@ export function EditDeckCardsContent({
               id={deleteTitleId}
               className="font-display text-lg font-semibold text-midnight-ink"
             >
-              ¿Borrar card?
+              ¿Seguro querés borrar esta card?
             </h2>
             <p className="mt-2 text-sm text-cool-gray">
-              Esta card dejará de mostrarse en el deck. Tu historial de estudio se
-              conserva.
+              Se eliminará esta pregunta del deck y ya no aparecerá al estudiar.
             </p>
             {formError ? (
               <p className="mt-3 text-sm text-red-700" role="alert">
@@ -440,6 +459,8 @@ export function EditDeckCardsContent({
           </div>
         </div>
       ) : null}
+
+      <FeedbackToast message={feedbackMessage} onDismiss={dismissFeedback} />
     </AppShell>
   );
 }
