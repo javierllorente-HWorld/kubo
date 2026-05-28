@@ -834,6 +834,8 @@ export async function reviewCard(
   const cardStatus = getRatingCardStatus(rating);
   const nextReviewAtSql = getNextReviewAtSql(rating);
 
+  console.log("[reviewCard] start", { cardId, rating, xpEarned, cardStatus });
+
   await withTransaction(async (queryInTx) => {
     const reviewRows = await queryInTx<{ id: string }>(
       `INSERT INTO card_reviews (card_id, user_id, rating, xp_earned)
@@ -857,13 +859,17 @@ export async function reviewCard(
     );
 
     if (!reviewRows[0]) {
-      throw new Error("No se pudo registrar la revisión de la card");
+      throw new Error(
+        `[reviewCard] INSERT card_reviews afectó 0 filas (cardId=${cardId})`,
+      );
     }
+
+    console.log("[reviewCard] card_reviews inserted", { reviewId: reviewRows[0].id });
 
     const cardRows = await queryInTx<{ id: string }>(
       `UPDATE cards c
        SET status = $2,
-           review_count = c.review_count + 1,
+           review_count = review_count + 1,
            last_reviewed_at = NOW(),
            next_review_at = ${nextReviewAtSql},
            updated_at = NOW()
@@ -880,15 +886,26 @@ export async function reviewCard(
     );
 
     if (!cardRows[0]) {
-      throw new Error("No se pudo actualizar la card");
+      throw new Error(
+        `[reviewCard] UPDATE cards afectó 0 filas (cardId=${cardId})`,
+      );
     }
 
-    await queryInTx(
+    console.log("[reviewCard] cards updated", { cardId: cardRows[0].id });
+
+    const userRows = await queryInTx<{ id: string }>(
       `UPDATE users
        SET total_xp = total_xp + $1
-       WHERE id = ${firstUserIdSubquery}`,
+       WHERE id = ${firstUserIdSubquery}
+       RETURNING id`,
       [xpEarned],
     );
+
+    if (!userRows[0]) {
+      throw new Error("[reviewCard] UPDATE users afectó 0 filas");
+    }
+
+    console.log("[reviewCard] users.total_xp updated", { userId: userRows[0].id });
 
     const progressUpdated = await queryInTx<{ id: string }>(
       `UPDATE daily_progress
@@ -900,12 +917,28 @@ export async function reviewCard(
       [xpEarned],
     );
 
-    if (!progressUpdated[0]) {
-      await queryInTx(
-        `INSERT INTO daily_progress (user_id, date, cards_reviewed, xp_earned)
-         VALUES (${firstUserIdSubquery}, CURRENT_DATE, 1, $1)`,
-        [xpEarned],
-      );
+    if (progressUpdated[0]) {
+      console.log("[reviewCard] daily_progress updated", {
+        progressId: progressUpdated[0].id,
+      });
+      return;
     }
+
+    const progressInserted = await queryInTx<{ id: string }>(
+      `INSERT INTO daily_progress (user_id, date, cards_reviewed, xp_earned)
+       VALUES (${firstUserIdSubquery}, CURRENT_DATE, 1, $1)
+       RETURNING id`,
+      [xpEarned],
+    );
+
+    if (!progressInserted[0]) {
+      throw new Error("[reviewCard] INSERT daily_progress afectó 0 filas");
+    }
+
+    console.log("[reviewCard] daily_progress inserted", {
+      progressId: progressInserted[0].id,
+    });
   });
+
+  console.log("[reviewCard] committed", { cardId, rating });
 }

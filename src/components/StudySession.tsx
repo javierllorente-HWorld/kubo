@@ -8,6 +8,9 @@ import { StudySessionHeader } from "@/components/StudySessionHeader";
 import { reviewCardAction } from "@/app/study/actions";
 import type { SessionCard } from "@/lib/mock-data";
 
+const POSTGRES_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 type StudySessionProps = {
   cards: SessionCard[];
   mode: "daily" | "deck";
@@ -60,20 +63,46 @@ export function StudySession({
 
   function handleRate(ratingLabel: string) {
     if (usingMockFallback) {
+      console.log("[StudySession] mock fallback — no reviewCardAction", {
+        cardId: currentCard.id,
+        ratingLabel,
+      });
       advanceAfterRating(ratingLabel);
       return;
     }
 
+    if (!POSTGRES_UUID_RE.test(currentCard.id)) {
+      console.error("[StudySession] card.id no es UUID de PostgreSQL", {
+        cardId: currentCard.id,
+        ratingLabel,
+      });
+      return;
+    }
+
     startTransition(async () => {
-      const result = await reviewCardAction(currentCard.id, ratingLabel, {
-        deckSlug,
+      console.log("[StudySession] reviewCardAction request", {
+        cardId: currentCard.id,
+        ratingLabel,
       });
 
-      if (!result.ok) {
-        console.error("[StudySession] reviewCardAction:", result.error);
-      }
+      try {
+        const result = await reviewCardAction(currentCard.id, ratingLabel, {
+          deckSlug,
+        });
 
-      advanceAfterRating(ratingLabel);
+        if (!result.ok) {
+          console.error("[StudySession] reviewCardAction rejected:", result.error);
+          return;
+        }
+
+        console.log("[StudySession] reviewCardAction ok", {
+          cardId: currentCard.id,
+          ratingLabel,
+        });
+        advanceAfterRating(ratingLabel);
+      } catch (error) {
+        console.error("[StudySession] reviewCardAction threw:", error);
+      }
     });
   }
 

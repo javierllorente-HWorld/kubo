@@ -21,7 +21,11 @@ export async function reviewCardAction(
   }
 
   try {
+    console.log("[study] reviewCardAction", { cardId, rating, ratingLabel });
+
     await reviewCard(cardId, rating);
+
+    console.log("[study] reviewCardAction ok", { cardId, rating });
 
     revalidatePath("/dashboard");
     revalidatePath("/estudiar/sesion");
@@ -34,13 +38,12 @@ export async function reviewCardAction(
 
     return { ok: true };
   } catch (error) {
-    console.error("[study] reviewCard failed:", error);
-    return {
-      ok: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "No se pudo guardar el progreso de estudio",
-    };
+    console.error("[study] reviewCardAction failed", {
+      cardId,
+      rating,
+      ratingLabel,
+      error,
+    });
+    throw error;
   }
 }
