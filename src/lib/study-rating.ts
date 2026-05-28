@@ -26,15 +26,19 @@ export function getRatingCardStatus(rating: StudyRating): "learning" | "review" 
   return rating === "good" || rating === "easy" ? "review" : "learning";
 }
 
+const NEXT_REVIEW_AT_SQL: Record<StudyRating, string> = {
+  again: "NOW() + INTERVAL '5 minutes'",
+  hard: "NOW() + INTERVAL '30 minutes'",
+  good: "NOW() + INTERVAL '1 day'",
+  easy: "NOW() + INTERVAL '3 days'",
+};
+
 export function getNextReviewAtSql(rating: StudyRating): string {
-  switch (rating) {
-    case "again":
-      return "NOW() + INTERVAL '5 minutes'";
-    case "hard":
-      return "NOW() + INTERVAL '30 minutes'";
-    case "good":
-      return "NOW() + INTERVAL '1 day'";
-    case "easy":
-      return "NOW() + INTERVAL '3 days'";
+  const sql = NEXT_REVIEW_AT_SQL[rating];
+
+  if (!sql) {
+    throw new Error(`Rating inválido: ${String(rating)}`);
   }
+
+  return sql;
 }

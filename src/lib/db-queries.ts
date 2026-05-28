@@ -834,15 +834,22 @@ export async function reviewCard(
   const cardStatus = getRatingCardStatus(rating);
   const nextReviewAtSql = getNextReviewAtSql(rating);
 
-  console.log("[reviewCard] start", { cardId, rating, xpEarned, cardStatus });
+  console.log("[reviewCard] start", {
+    cardId,
+    rating,
+    xpEarned,
+    cardStatus,
+    nextReviewAtSql,
+  });
 
   await withTransaction(async (queryInTx) => {
     const reviewRows = await queryInTx<{ id: string }>(
-      `INSERT INTO card_reviews (card_id, user_id, rating, xp_earned)
+      `INSERT INTO card_reviews (card_id, user_id, rating, xp_earned, next_review_at)
        SELECT $1,
               ${firstUserIdSubquery},
               $2,
-              $3
+              $3,
+              ${nextReviewAtSql}
        WHERE EXISTS (
          SELECT 1
          FROM cards c
