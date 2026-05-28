@@ -40,7 +40,7 @@ export function SubjectCard({ subject, onEdit, onDelete }: SubjectCardProps) {
         >
           Ver decks
         </ButtonLink>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-2">
           <Button
             type="button"
             variant="secondary"

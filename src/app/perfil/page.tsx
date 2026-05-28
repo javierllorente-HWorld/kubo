@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/StatCard";
 import { AccountSection } from "./AccountSection";
+import { loadRecentActivityForHeader } from "@/app/actions/activity";
 import {
   getUserProfile,
   getUserSettings,
@@ -16,10 +17,7 @@ import {
   getMockUserSettings,
   getMockUserStats,
 } from "@/lib/db-fallback";
-import {
-  MockAuditLabel,
-  MockAuditSection,
-} from "@/components/dev/MockAuditLabel";
+import { MockAuditSection } from "@/components/dev/MockAuditLabel";
 
 function getInitials(name: string): string {
   return name
@@ -51,6 +49,8 @@ export default async function PerfilPage() {
   let settings;
   let stats;
   let usingMockFallback = false;
+  const { items: recentActivity, usingMockFallback: usingMockActivity } =
+    await loadRecentActivityForHeader();
 
   try {
     [profile, settings, stats] = await Promise.all([
@@ -111,7 +111,11 @@ export default async function PerfilPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
+      showNotificationsMockLabel={usingMockActivity}
+    >
       <main className="flex-1 p-4 sm:p-5 lg:p-6">
         <div className="mx-auto max-w-6xl">
           <PageHeader
@@ -134,7 +138,7 @@ export default async function PerfilPage() {
                     <h2 className="font-display text-lg font-bold text-midnight-ink">
                       {name}
                     </h2>
-                    <p className="mt-0.5 truncate text-sm text-cool-gray">
+                    <p className="mt-0.5 break-all text-sm text-cool-gray sm:truncate">
                       {email}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -181,10 +185,6 @@ export default async function PerfilPage() {
                     >
                       <span className="text-sm text-cool-gray">{pref.label}</span>
                       <span className="flex shrink-0 items-center gap-1.5">
-                        {!usingMockFallback &&
-                          pref.label === "Recordatorios" && (
-                            <MockAuditLabel />
-                          )}
                         {"highlight" in pref && pref.highlight ? (
                           <Badge variant="xp">{pref.value}</Badge>
                         ) : (
@@ -206,6 +206,8 @@ export default async function PerfilPage() {
                 university,
                 career,
               }}
+              userId={profile?.id}
+              usingMockFallback={usingMockFallback}
             />
             </div>
           </MockAuditSection>

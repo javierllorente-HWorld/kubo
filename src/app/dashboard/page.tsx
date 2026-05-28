@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { DailySessionCard } from "@/components/DailySessionCard";
 import { DeckPreviewCard } from "@/components/DeckPreviewCard";
 import { PageHeader } from "@/components/PageHeader";
+import { loadRecentActivityForHeader } from "@/app/actions/activity";
 import { getDashboardData } from "@/lib/db-queries";
 import { getMockDashboardData } from "@/lib/db-fallback";
 import { userProfile, streakData } from "@/lib/mock-data";
@@ -28,6 +29,8 @@ export default async function DashboardPage() {
   let firstName;
   let profile;
   let usingMockFallback = false;
+  const { items: recentActivity, usingMockFallback: usingMockActivity } =
+    await loadRecentActivityForHeader();
 
   try {
     ({ previewDecks, dailySession, stats, firstName, profile } =
@@ -60,8 +63,10 @@ export default async function DashboardPage() {
   return (
     <AppShell
       headerProfile={headerProfile}
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
       showAvatarMockLabel={usingMockFallback}
-      showNotificationsMockLabel
+      showNotificationsMockLabel={usingMockActivity}
     >
       <main className="relative z-0 flex-1 p-4 sm:p-5 lg:p-6">
         <div className="mx-auto max-w-6xl">

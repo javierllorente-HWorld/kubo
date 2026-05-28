@@ -6,6 +6,7 @@ import { BackLink } from "@/components/BackLink";
 import { StudySession } from "@/components/StudySession";
 import { EmptyState } from "@/components/EmptyState";
 import { ButtonLink } from "@/components/ButtonLink";
+import { loadRecentActivityForHeader } from "@/app/actions/activity";
 import {
   getDeckEditContextById,
   getDeckSessionCardsByDeckId,
@@ -26,6 +27,8 @@ export default async function EstudiarDeckPage({ params }: PageProps) {
   let context;
   let sessionCards;
   let usingMockFallback = false;
+  const { items: recentActivity, usingMockFallback: usingMockActivity } =
+    await loadRecentActivityForHeader();
 
   try {
     context = await getDeckEditContextById(deckId);
@@ -50,7 +53,11 @@ export default async function EstudiarDeckPage({ params }: PageProps) {
   const editHref = deckEditHref(deckId);
 
   return (
-    <AppShell compactHeader>
+    <AppShell
+      compactHeader
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
+    >
       <main className="flex-1 px-4 pb-4 pt-2.5 sm:px-5 sm:pb-5 sm:pt-3 lg:px-6 lg:pb-6 lg:pt-3.5">
         <div className="mx-auto max-w-3xl">
           {sessionCards.length > 0 ? (

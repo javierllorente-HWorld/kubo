@@ -1,6 +1,7 @@
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { AppHeader } from "@/components/AppHeader";
 import { AppSidebar } from "@/components/AppSidebar";
+import type { ActivityEventItem } from "@/lib/activity";
 
 type HeaderProfile = {
   name: string;
@@ -11,6 +12,8 @@ type AppShellProps = {
   children: React.ReactNode;
   compactHeader?: boolean;
   headerProfile?: HeaderProfile;
+  recentActivity?: ActivityEventItem[];
+  usingMockActivity?: boolean;
   showAvatarMockLabel?: boolean;
   showNotificationsMockLabel?: boolean;
 };
@@ -19,6 +22,8 @@ export function AppShell({
   children,
   compactHeader,
   headerProfile,
+  recentActivity,
+  usingMockActivity,
   showAvatarMockLabel,
   showNotificationsMockLabel,
 }: AppShellProps) {
@@ -30,6 +35,8 @@ export function AppShell({
           compact={compactHeader}
           className="shrink-0"
           profile={headerProfile}
+          recentActivity={recentActivity}
+          usingMockActivity={usingMockActivity}
           showAvatarMockLabel={showAvatarMockLabel}
           showNotificationsMockLabel={showNotificationsMockLabel}
         />

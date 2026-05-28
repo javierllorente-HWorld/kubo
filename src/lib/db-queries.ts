@@ -1,3 +1,9 @@
+import {
+  formatActivityTime,
+  formatActivityXp,
+  mapEventTypeToIcon,
+  type ActivityEventItem,
+} from "@/lib/activity";
 import { query, withTransaction } from "@/lib/db";
 import {
   getNextReviewAtSql,
@@ -5,6 +11,136 @@ import {
   getRatingXp,
   type StudyRating,
 } from "@/lib/study-rating";
+
+export type { ActivityEventItem };
+
+export type CreateActivityEventInput = {
+  eventType: string;
+  title: string;
+  description?: string | null;
+  xpEarned?: number;
+  subjectId?: string | null;
+  deckId?: string | null;
+  cardId?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+type ActivityEventRow = {
+  id: string;
+  event_type: string;
+  title: string;
+  description: string | null;
+  xp_earned: number;
+  created_at: Date;
+};
+
+type QueryInTx = <T = unknown>(
+  text: string,
+  params?: unknown[],
+) => Promise<T[]>;
+
+async function insertActivityEventWithQuery(
+  runQuery: QueryInTx,
+  data: CreateActivityEventInput,
+): Promise<void> {
+  const rows = await runQuery<{ id: string }>(
+    `INSERT INTO activity_events (
+       user_id,
+       event_type,
+       title,
+       description,
+       xp_earned,
+       subject_id,
+       deck_id,
+       card_id,
+       metadata
+     )
+     VALUES (
+       ${firstUserIdSubquery},
+       $1,
+       $2,
+       $3,
+       $4,
+       $5,
+       $6,
+       $7,
+       $8::jsonb
+     )
+     RETURNING id`,
+    [
+      data.eventType,
+      data.title,
+      data.description ?? null,
+      data.xpEarned ?? 0,
+      data.subjectId ?? null,
+      data.deckId ?? null,
+      data.cardId ?? null,
+      data.metadata ? JSON.stringify(data.metadata) : null,
+    ],
+  );
+
+  if (!rows[0]) {
+    throw new Error("No se pudo registrar el evento de actividad");
+  }
+}
+
+export async function createActivityEvent(
+  data: CreateActivityEventInput,
+): Promise<void> {
+  await insertActivityEventWithQuery(query, data);
+}
+
+export async function getRecentActivity(): Promise<ActivityEventItem[]> {
+  const rows = await query<ActivityEventRow>(
+    `SELECT id,
+            event_type,
+            title,
+            description,
+            xp_earned,
+            created_at
+     FROM activity_events
+     WHERE user_id = ${firstUserIdSubquery}
+     ORDER BY created_at DESC
+     LIMIT 5`,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    xp: formatActivityXp(Number(row.xp_earned)),
+    time: formatActivityTime(new Date(row.created_at)),
+    type: mapEventTypeToIcon(row.event_type),
+  }));
+}
+
+export type StudySessionActivityInput = {
+  xpEarned: number;
+  cardsStudied: number;
+  newCards: number;
+  reviewCards: number;
+  deckId?: string | null;
+};
+
+export async function recordStudySessionCompleted(
+  data: StudySessionActivityInput,
+): Promise<void> {
+  const cardsLabel =
+    data.cardsStudied === 1 ? "1 card" : `${data.cardsStudied} cards`;
+
+  await createActivityEvent({
+    eventType: "study_session_completed",
+    title: "Completaste una sesión",
+    description: `Estudiaste ${cardsLabel}`,
+    xpEarned: data.xpEarned,
+    deckId: data.deckId ?? null,
+    metadata: {
+      cardsStudied: data.cardsStudied,
+      newCards: data.newCards,
+      reviewCards: data.reviewCards,
+    },
+  });
+}
 
 export type DemoUser = {
   id: string;
@@ -54,6 +190,49 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   );
 
   return rows[0] ?? null;
+}
+
+export type UserProfileUpdate = {
+  name: string;
+  email: string;
+  university: string;
+  career: string;
+};
+
+export async function updateUserProfile(
+  userId: string,
+  data: UserProfileUpdate,
+): Promise<UserProfile> {
+  const name = data.name.trim();
+  const email = data.email.trim();
+  const university = data.university.trim();
+  const career = data.career.trim();
+
+  if (!name) {
+    throw new Error("El nombre es obligatorio");
+  }
+
+  if (!email) {
+    throw new Error("El email es obligatorio");
+  }
+
+  const rows = await query<UserProfile>(
+    `UPDATE users
+     SET name = $2,
+         email = $3,
+         university = $4,
+         career = $5,
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, name, email, career, university, total_xp`,
+    [userId, name, email, university, career],
+  );
+
+  if (!rows[0]) {
+    throw new Error("No se pudo actualizar el perfil");
+  }
+
+  return rows[0];
 }
 
 export async function getUserSettings(): Promise<UserSettings | null> {
@@ -886,6 +1065,27 @@ export async function reviewCard(
   });
 
   await withTransaction(async (queryInTx) => {
+    const cardContextRows = await queryInTx<{
+      deck_id: string;
+      deck_name: string;
+      subject_id: string;
+    }>(
+      `SELECT d.id AS deck_id,
+              d.name AS deck_name,
+              s.id AS subject_id
+       FROM cards c
+       INNER JOIN decks d ON d.id = c.deck_id
+       INNER JOIN subjects s ON s.id = d.subject_id
+       WHERE c.id = $1
+         AND c.deleted_at IS NULL
+         AND d.deleted_at IS NULL
+         AND s.deleted_at IS NULL
+         AND s.user_id = ${firstUserIdSubquery}`,
+      [cardId],
+    );
+
+    const cardContext = cardContextRows[0];
+
     const reviewRows = await queryInTx<{ id: string }>(
       `INSERT INTO card_reviews (card_id, user_id, rating, xp_earned, next_review_at)
        SELECT $1,
@@ -971,23 +1171,35 @@ export async function reviewCard(
       console.log("[reviewCard] daily_progress updated", {
         progressId: progressUpdated[0].id,
       });
-      return;
+    } else {
+      const progressInserted = await queryInTx<{ id: string }>(
+        `INSERT INTO daily_progress (user_id, date, cards_reviewed, xp_earned)
+         VALUES (${firstUserIdSubquery}, CURRENT_DATE, 1, $1)
+         RETURNING id`,
+        [xpEarned],
+      );
+
+      if (!progressInserted[0]) {
+        throw new Error("[reviewCard] INSERT daily_progress afectó 0 filas");
+      }
+
+      console.log("[reviewCard] daily_progress inserted", {
+        progressId: progressInserted[0].id,
+      });
     }
 
-    const progressInserted = await queryInTx<{ id: string }>(
-      `INSERT INTO daily_progress (user_id, date, cards_reviewed, xp_earned)
-       VALUES (${firstUserIdSubquery}, CURRENT_DATE, 1, $1)
-       RETURNING id`,
-      [xpEarned],
-    );
-
-    if (!progressInserted[0]) {
-      throw new Error("[reviewCard] INSERT daily_progress afectó 0 filas");
-    }
-
-    console.log("[reviewCard] daily_progress inserted", {
-      progressId: progressInserted[0].id,
+    await insertActivityEventWithQuery(queryInTx, {
+      eventType: "card_reviewed",
+      title: "Estudiaste una card",
+      description: cardContext?.deck_name ?? null,
+      xpEarned,
+      subjectId: cardContext?.subject_id ?? null,
+      deckId: cardContext?.deck_id ?? null,
+      cardId,
+      metadata: { rating },
     });
+
+    console.log("[reviewCard] activity_events inserted");
   });
 
   console.log("[reviewCard] committed", { cardId, rating });

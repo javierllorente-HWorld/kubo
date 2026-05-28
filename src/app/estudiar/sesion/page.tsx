@@ -5,6 +5,7 @@ import { BackLink } from "@/components/BackLink";
 import { StudySession } from "@/components/StudySession";
 import { EmptyState } from "@/components/EmptyState";
 import { ButtonLink } from "@/components/ButtonLink";
+import { loadRecentActivityForHeader } from "@/app/actions/activity";
 import { getDueCardsForDailySession } from "@/lib/db-queries";
 import { getMockDueCardsForDailySession } from "@/lib/db-fallback";
 import { MockAuditSection } from "@/components/dev/MockAuditLabel";
@@ -12,6 +13,8 @@ import { MockAuditSection } from "@/components/dev/MockAuditLabel";
 export default async function SesionDiariaPage() {
   let sessionCards;
   let usingMockFallback = false;
+  const { items: recentActivity, usingMockFallback: usingMockActivity } =
+    await loadRecentActivityForHeader();
 
   try {
     sessionCards = await getDueCardsForDailySession();
@@ -27,7 +30,11 @@ export default async function SesionDiariaPage() {
 
   if (pendingTotal === 0 || sessionCards.length === 0) {
     return (
-      <AppShell compactHeader>
+      <AppShell
+        compactHeader
+        recentActivity={recentActivity}
+        usingMockActivity={usingMockActivity}
+      >
         <main className="flex-1 p-4 sm:p-5 lg:p-6">
           <div className="mx-auto max-w-3xl">
             <BackLink href="/dashboard">Volver al inicio</BackLink>
@@ -46,7 +53,11 @@ export default async function SesionDiariaPage() {
   }
 
   return (
-    <AppShell compactHeader>
+    <AppShell
+      compactHeader
+      recentActivity={recentActivity}
+      usingMockActivity={usingMockActivity}
+    >
       <main className="flex-1 px-4 pb-4 pt-2.5 sm:px-5 sm:pb-5 sm:pt-3 lg:px-6 lg:pb-6 lg:pt-3.5">
         <div className="mx-auto max-w-3xl">
           <MockAuditSection enabled={usingMockFallback}>
