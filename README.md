@@ -13,7 +13,7 @@ Email: demo@kubo.app
 Password: kubo123
 ```
 
-> La cuenta demo incluye datos precargados para explorar la app.
+> La cuenta demo incluye datos precargados para explorar la app. (En la DB de AWS)
 
 ## Preview
 
